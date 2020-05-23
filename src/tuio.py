@@ -12,8 +12,6 @@ It supports only 2D Object|Blob|Cursor
 
 """
 
-import time
-
 from collections import Iterable
 from pythonosc import udp_client
 from pythonosc.osc_message_builder import OscMessageBuilder
@@ -55,20 +53,19 @@ class TuioClient(udp_client.UDPClient):
         bundle_builder.add_content(alive_msg)
 
         # set message of cursor
-        
         for cursor in self.cursors:
             cursor_msg = cursor.get_message()
             bundle_builder.add_content(cursor_msg)
 
         # set message of blob
-        # for blob in self.blobs:
-        #     blob_msg = blob.get_message()
-        #     bundle_builder.add_content(blob_msg)
+        for blob in self.blobs:
+            blob_msg = blob.get_message()
+            bundle_builder.add_content(blob_msg)
 
-        # # set message of object
-        # for o in self.objects:
-        #     object_msg = o.get_message()
-        #     bundle_builder.add_content(object_msg)
+        # set message of object
+        for o in self.objects:
+            object_msg = o.get_message()
+            bundle_builder.add_content(object_msg)
 
         # message fseq to end the bundle and send (optinal) frame id 
         builder = OscMessageBuilder(address=TUIO_CURSOR)
@@ -94,11 +91,13 @@ class Profile:
         self.session_id = session_id
 
 class Object(Profile):
-
+    """
+    TUIO Object 2D Interactive Surface
+    """
     def __init__(self, session_id):  
         super(Object, self).__init__(session_id)
         self.class_id               = -1        # i   
-        self.position               =tuple()    # x,y  
+        self.position               = tuple()   # x,y  
         self.angle                  = 0         # a  
         self.velocity               = tuple()   # X,Y
         self.velocity_rotation      = 0         # A
@@ -106,6 +105,9 @@ class Object(Profile):
         self.rotation_acceleration  = 0         # r
 
     def get_message(self):
+        """
+        returns the OSC message of the Object with the TUIO spezification
+        """
         x, y = self.position
         X, Y = self.velocity
         builder = OscMessageBuilder(address=TUIO_OBJECT)
@@ -121,18 +123,24 @@ class Object(Profile):
                 float(self.velocity_rotation),
                 float(self.motion_acceleration),
                 float(self.rotation_acceleration)
-                
         ]:
             builder.add_arg(val)
         return builder.build()
+
 class Cursor(Profile):
+    """
+    TUIO Cursor 2D Interactive Surface
+    """
     def __init__(self, session_id):
         super(Cursor, self).__init__(session_id)
         self.position               = tuple()       # x,y
         self.velocity               = tuple()       # X,Y
         self.motion_acceleration    = 0             # m
-        
+  
     def get_message(self):
+        """
+        returns the OSC message of the Cursor with the TUIO spezification
+        """
         x, y = self.position
         X, Y = self.velocity
         builder = OscMessageBuilder(address=TUIO_CURSOR)
@@ -150,8 +158,11 @@ class Cursor(Profile):
 
 
 class Blob(Profile):
-
-    def __init__(self):
+    """
+    TUIO Blob 2D Interactive Surface
+    """
+    def __init__(self, session_id):
+        super(Blob, self).__init__(session_id)
         self.position               = tuple()   # x,y
         self.angle                  =  0        # a 
         self.dimension              =(.1,.1)    # w, h
@@ -162,6 +173,9 @@ class Blob(Profile):
         self.rotation_acceleration  = 0         # r
 
     def get_message(self):
+        """
+        returns the OSC message of the Blob with the TUIO spezification
+        """
         x, y = self.position
         X, Y = self.velocity
         builder = OscMessageBuilder(address=TUIO_BLOB)
