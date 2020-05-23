@@ -90,44 +90,61 @@ class Profile:
 
     """
 
-    def __init__(self, session_id= None):
+    def __init__(self, session_id):
         self.session_id = session_id
 
 class Object(Profile):
-    def __init__(self):  
-        self.position=tuple()          # x,y  
-        self.angle                     # a  
-        self.velocity = tuple()        # X,Y
-        self.velocity_rotation         # A
-        self.motion_acceleration       # m
-        self.rotation_acceleration     # r
 
-
-    def send_update(self):
-        self.client.send_message(TUIO_OBJECT, str.encode(self.get_message()))
+    def __init__(self, session_id):  
+        super(Object, self).__init__(session_id)
+        self.class_id               = -1        # i   
+        self.position               =tuple()    # x,y  
+        self.angle                  = 0         # a  
+        self.velocity               = tuple()   # X,Y
+        self.velocity_rotation      = 0         # A
+        self.motion_acceleration    = 0         # m
+        self.rotation_acceleration  = 0         # r
 
     def get_message(self):
         x, y = self.position
         X, Y = self.velocity
-        return f"set {self.session_id} {self.class_id} {x} {y} {self.angle} {X} {Y} {self.velocity_rotation} {self.motion_acceleration} {self.rotation_acceleration} " 
-
+        builder = OscMessageBuilder(address=TUIO_OBJECT)
+        for val in [
+                "set",
+                int(self.session_id),
+                int(self.class_id),
+                float(x),
+                float(y),
+                float(self.angle),
+                float(X),
+                float(Y),
+                float(self.velocity_rotation),
+                float(self.motion_acceleration),
+                float(self.rotation_acceleration)
+                
+        ]:
+            builder.add_arg(val)
+        return builder.build()
 class Cursor(Profile):
-    def __init__(self):
-        super(Cursor, self).__init__()
+    def __init__(self, session_id):
+        super(Cursor, self).__init__(session_id)
         self.position               = tuple()       # x,y
         self.velocity               = tuple()       # X,Y
         self.motion_acceleration    = 0             # m
-
-    # def send_update(self):
-    #     message = self.get_message()
-
-    #     self.client.send_message(TUIO_CURSOR, message)
         
     def get_message(self):
         x, y = self.position
         X, Y = self.velocity
         builder = OscMessageBuilder(address=TUIO_CURSOR)
-        for val in ["set", self.session_id, float(x), float(y), float(X), float(Y), float(self.motion_acceleration)]:
+        for val in [
+                "set",
+                self.session_id,
+                float(x),
+                float(y),
+                float(X),
+                float(Y),
+                float(self.motion_acceleration)
+        ]:
             builder.add_arg(val)
         return builder.build()
 
@@ -135,50 +152,32 @@ class Cursor(Profile):
 class Blob(Profile):
 
     def __init__(self):
-        self.client = Client()
-        self.position = tuple()        # x,y
-        self.angle   =  0            # a dosen`t understand this value
-        self.dimension =(1,1)        # w, h
-        self.area                    # f
-        self.velocity = tuple()      # X,Y
-        self.velocity_rotation       # A
-        self.motion_acceleration     # m
-        self.rotation_acceleration   # r
-
-    def send_update(self):
-        self.client.send_message(TUIO_BLOB,  str.encode(self.get_message()))
+        self.position               = tuple()   # x,y
+        self.angle                  =  0        # a 
+        self.dimension              =(.1,.1)    # w, h
+        self.area                   = None      # f
+        self.velocity               = tuple()   # X,Y
+        self.velocity_rotation      = 0         # A
+        self.motion_acceleration    = 0         # m
+        self.rotation_acceleration  = 0         # r
 
     def get_message(self):
         x, y = self.position
         X, Y = self.velocity
-        return f"set {self.session_id} {x} {y} {self.angle} {self.dimension} {self.area} {X} {Y} {velocity_rotation} {self.motion_acceleration} {self.rotation_acceleration}"
-
-
-if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--ip", default="127.0.0.1",
-    #     help="The ip of the OSC server")
-    # parser.add_argument("--port", type=int, default=5005,
-    #     help="The port the OSC server is listening on")
-    # args = parser.parse_args()
-
-    client = TuioClient()
-
-    i = 0
-    cursor = Cursor()
-
-    cursor.velocity             = (0.2,0.1)
-    cursor.motion_acceleration  = 0.1 
-    cursor.session_id    = 123
-
-    client.cursors.append(cursor)
-    while i < 10:
-
-    
-        i+=1
-        cursor.position             = (0.5+0.01*i,0.5)
-
-        client.send_bundle()
-        print("sented message")
-        time.sleep(0.1)
-
+        builder = OscMessageBuilder(address=TUIO_BLOB)
+        for val in [
+                "set",
+                self.session_id,
+                float(x),
+                float(y),
+                float(self.angle),
+                float(self.dimension),
+                float(self.area),
+                float(X),
+                float(Y),
+                float(self.velocity_rotation),
+                float(self.motion_acceleration),
+                float(self.rotation_acceleration)
+        ]:
+            builder.add_arg(val)
+        return builder.build()
