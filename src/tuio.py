@@ -1,15 +1,3 @@
-import argparse
-import random
-import time
-from datetime import datetime
-
-from collections import Iterable
-from pythonosc import udp_client
-from pythonosc.osc_message_builder import OscMessageBuilder
-from pythonosc.osc_bundle_builder import OscBundleBuilder
-from pythonosc.osc_message import OscMessage
-from pythonosc.osc_bundle import OscBundle
-from typing import Union
 """
 this python file is written orientated by the TUIO spezification 
 https://www.tuio.org/?specification
@@ -24,19 +12,29 @@ It supports only 2D Object|Blob|Cursor
 
 """
 
-TUIO_CURSOR = "/tuio/2Dcur"
+import time
 
+from collections import Iterable
+from pythonosc import udp_client
+from pythonosc.osc_message_builder import OscMessageBuilder
+from pythonosc.osc_bundle_builder import OscBundleBuilder
+
+
+
+TUIO_CURSOR = "/tuio/2Dcur"
+TUIO_OBJECT = "/tuio/2Dobj"
+TUIO_BLOB   = "/tuio/2Dblb"
 
 class TuioClient(udp_client.UDPClient):
 
-    def __init__(self, ip="127.0.0.1", port=3333 ):
+    def __init__(self, ip="127.0.0.1", port=3333):
         super(TuioClient, self).__init__(ip, port)
 
         self.cursors = []
         self.objects = []
         self.blobs   = []
 
-    def send_bundle(self ):
+    def send_bundle(self):
         """Build :class:`OscMessage` from arguments and send to server
 
         Args:
@@ -59,17 +57,17 @@ class TuioClient(udp_client.UDPClient):
         # set message of cursor
         
         for cursor in self.cursors:
-            cursor_msg = cursor._get_message()
+            cursor_msg = cursor.get_message()
             bundle_builder.add_content(cursor_msg)
 
         # set message of blob
         # for blob in self.blobs:
-        #     blob_msg = blob._get_message()
+        #     blob_msg = blob.get_message()
         #     bundle_builder.add_content(blob_msg)
 
         # # set message of object
         # for o in self.objects:
-        #     object_msg = o._get_message()
+        #     object_msg = o.get_message()
         #     bundle_builder.add_content(object_msg)
 
         # message fseq to end the bundle and send (optinal) frame id 
@@ -106,9 +104,9 @@ class Object(Profile):
 
 
     def send_update(self):
-        self.client.send_message("/tuio/2Dobj", str.encode(self._get_message()))
+        self.client.send_message(TUIO_OBJECT, str.encode(self.get_message()))
 
-    def _get_message(self):
+    def get_message(self):
         x, y = self.position
         X, Y = self.velocity
         return f"set {self.session_id} {self.class_id} {x} {y} {self.angle} {X} {Y} {self.velocity_rotation} {self.motion_acceleration} {self.rotation_acceleration} " 
@@ -121,12 +119,11 @@ class Cursor(Profile):
         self.motion_acceleration    = 0             # m
 
     # def send_update(self):
-    #     message = self._get_message()
+    #     message = self.get_message()
 
-    #     #print(f"/tuio/2Dcur {message}")
-    #     self.client.send_message(f"/tuio/2Dcur", message)
+    #     self.client.send_message(TUIO_CURSOR, message)
         
-    def _get_message(self):
+    def get_message(self):
         x, y = self.position
         X, Y = self.velocity
         builder = OscMessageBuilder(address=TUIO_CURSOR)
@@ -149,9 +146,9 @@ class Blob(Profile):
         self.rotation_acceleration   # r
 
     def send_update(self):
-        self.client.send_message("/tuio/2Dblb",  str.encode(self._get_message()))
+        self.client.send_message(TUIO_BLOB,  str.encode(self.get_message()))
 
-    def _get_message(self):
+    def get_message(self):
         x, y = self.position
         X, Y = self.velocity
         return f"set {self.session_id} {x} {y} {self.angle} {self.dimension} {self.area} {X} {Y} {velocity_rotation} {self.motion_acceleration} {self.rotation_acceleration}"
