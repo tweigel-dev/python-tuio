@@ -11,3 +11,10 @@ testpython :
 	./TuioDemo &		
 	python3 -m pytest 				
 		
+
+
+upload_pip:
+	rm -r ./dist
+	python3 setup.py sdist bdist_wheel
+	python3 -m twine upload dist/*
+	

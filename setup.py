@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="python-tuio", # Replace with your own username
+    name="python-tuio",
     version="0.0.1",
     author="tweigel-dev",
     author_email="weigel-thomas@outlook.com",
