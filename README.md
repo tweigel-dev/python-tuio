@@ -1,8 +1,14 @@
 # TUIO for Python3 
 
 TUIO protokoll implementation  based on OSC protocol. It is implemented with the `python-osc` libary. 
+
 #### TUIO spezification
 http://www.tuio.org/?specification
+
+#### OSC spezification
+http://opensoundcontrol.org/spec-1_0 
+and 
+https://python-osc.readthedocs.io/en/latest/
 
 #### API example of C++ 
 https://www.tuio.org/?cpp
