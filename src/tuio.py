@@ -1,5 +1,5 @@
 """
-this python file is written orientated by the TUIO spezification 
+this python file is written orientated by the TUIO spezification
 https://www.tuio.org/?specification
 It supports only 2D Object|Blob|Cursor
 
@@ -12,7 +12,6 @@ It supports only 2D Object|Blob|Cursor
 
 """
 
-from collections import Iterable
 from pythonosc import udp_client
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
@@ -24,7 +23,9 @@ TUIO_OBJECT = "/tuio/2Dobj"
 TUIO_BLOB   = "/tuio/2Dblb"
 
 class TuioClient(udp_client.UDPClient):
-
+    """
+    Tuio client based on a basic osc udp client of the lib python-osc
+    """
     def __init__(self, ip="127.0.0.1", port=3333):
         super(TuioClient, self).__init__(ip, port)
 
@@ -48,7 +49,7 @@ class TuioClient(udp_client.UDPClient):
 
         builder.add_arg("alive")
         for cursor  in self.cursors:
-            builder.add_arg(cursor.session_id) ## add id 
+            builder.add_arg(cursor.session_id) ## add id
         alive_msg = builder.build()
         bundle_builder.add_content(alive_msg)
 
@@ -67,7 +68,7 @@ class TuioClient(udp_client.UDPClient):
             object_msg = o.get_message()
             bundle_builder.add_content(object_msg)
 
-        # message fseq to end the bundle and send (optinal) frame id 
+        # message fseq to end the bundle and send (optinal) frame id
         builder = OscMessageBuilder(address=TUIO_CURSOR)
         builder.add_arg("fseq")
         builder.add_arg(-1)
@@ -83,7 +84,8 @@ class TuioClient(udp_client.UDPClient):
 
 class Profile:
     """
-    custom class of all subjects passing the TUIO connection. See more at https://www.tuio.org/?specification
+    custom class of all subjects passing the TUIO connection.
+    See more at https://www.tuio.org/?specification
 
     """
 
@@ -94,15 +96,15 @@ class Object(Profile):
     """
     TUIO Object 2D Interactive Surface
     """
-    def __init__(self, session_id):  
+    def __init__(self, session_id):
         super(Object, self).__init__(session_id)
-        self.class_id               = -1        # i   
-        self.position               = tuple()   # x,y  
-        self.angle                  = 0         # a  
-        self.velocity               = tuple()   # X,Y
-        self.velocity_rotation      = 0         # A
-        self.motion_acceleration    = 0         # m
-        self.rotation_acceleration  = 0         # r
+        self.class_id               = -1            # i
+        self.position               = tuple(0, 0)   # x,y
+        self.angle                  = 0             # a
+        self.velocity               = tuple(0, 0)   # X,Y
+        self.velocity_rotation      = 0             # A
+        self.motion_acceleration    = 0             # m
+        self.rotation_acceleration  = 0             # r
 
     def get_message(self):
         """
@@ -133,10 +135,10 @@ class Cursor(Profile):
     """
     def __init__(self, session_id):
         super(Cursor, self).__init__(session_id)
-        self.position               = tuple()       # x,y
-        self.velocity               = tuple()       # X,Y
+        self.position               = tuple(0, 0)   # x,y
+        self.velocity               = tuple(0, 0)   # X,Y
         self.motion_acceleration    = 0             # m
-  
+
     def get_message(self):
         """
         returns the OSC message of the Cursor with the TUIO spezification
@@ -158,19 +160,20 @@ class Cursor(Profile):
 
 
 class Blob(Profile):
+     # pylint: disable=too-many-instance-attributes
     """
     TUIO Blob 2D Interactive Surface
     """
     def __init__(self, session_id):
         super(Blob, self).__init__(session_id)
-        self.position               = tuple()   # x,y
-        self.angle                  =  0        # a 
-        self.dimension              =(.1,.1)    # w, h
-        self.area                   = None      # f
-        self.velocity               = tuple()   # X,Y
-        self.velocity_rotation      = 0         # A
-        self.motion_acceleration    = 0         # m
-        self.rotation_acceleration  = 0         # r
+        self.position               = tuple(0, 0)   # x,y
+        self.angle                  =  0            # a
+        self.dimension              = (.1, .1)      # w, h
+        self.area                   = None          # f
+        self.velocity               = tuple(0, 0)   # X,Y
+        self.velocity_rotation      = 0             # A
+        self.motion_acceleration    = 0             # m
+        self.rotation_acceleration  = 0             # r
 
     def get_message(self):
         """
