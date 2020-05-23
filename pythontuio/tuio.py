@@ -55,7 +55,7 @@ class TuioClient(udp_client.UDPClient):
         for cursor  in self.blobs:
             builder.add_arg(cursor.session_id) ## add id of blobs
         alive_msg = builder.build()
-        
+
         for cursor  in self.objects:
             builder.add_arg(cursor.session_id) ## add id of objects
         alive_msg = builder.build()

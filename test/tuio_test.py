@@ -1,14 +1,7 @@
-<<<<<<< HEAD
-from src.tuio import TuioClient
-from src.tuio import Cursor
-from src.tuio import Blob
-from src.tuio import Object
-=======
 from pythontuio.tuio import TuioClient
 from pythontuio.tuio import Cursor
 from pythontuio.tuio import Blob
 from pythontuio.tuio import Object
->>>>>>> feature/pip
 
 
 

@@ -2,10 +2,10 @@ all:
 	echo "specify target"
 
 run :
-	python3 src/tuio.py
+	python3 pythontuio/tuio.py
 
 lint :
-	python3 -m pylint ./src/ --msg-template='{msg_id}:{line:3d},{column}: {obj}: {msg}'
+	python3 -m pylint ./pythontuio/ --msg-template='{msg_id}:{line:3d},{column}: {obj}: {msg}'
 	
 testpython :
 	./TuioDemo &		
