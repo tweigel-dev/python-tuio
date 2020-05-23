@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="python-tuio-tweigel-dev",
-    version="0.0.2",
+    name="python-tuio",
+    version="0.0.3",
     author="tweigel-dev",
     author_email="weigel-thomas@outlook.com",
     description="python3 implementation of the TUIO protocol",
