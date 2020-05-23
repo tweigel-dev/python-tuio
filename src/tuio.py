@@ -49,8 +49,17 @@ class TuioClient(udp_client.UDPClient):
 
         builder.add_arg("alive")
         for cursor  in self.cursors:
-            builder.add_arg(cursor.session_id) ## add id
+            builder.add_arg(cursor.session_id) ## add id of cursors
         alive_msg = builder.build()
+
+        for cursor  in self.blobs:
+            builder.add_arg(cursor.session_id) ## add id of blobs
+        alive_msg = builder.build()
+        
+        for cursor  in self.objects:
+            builder.add_arg(cursor.session_id) ## add id of objects
+        alive_msg = builder.build()
+
         bundle_builder.add_content(alive_msg)
 
         # set message of cursor
@@ -99,9 +108,9 @@ class Object(Profile):
     def __init__(self, session_id):
         super(Object, self).__init__(session_id)
         self.class_id               = -1            # i
-        self.position               = tuple(0, 0)   # x,y
+        self.position               = (0, 0)   # x,y
         self.angle                  = 0             # a
-        self.velocity               = tuple(0, 0)   # X,Y
+        self.velocity               = (0, 0)   # X,Y
         self.velocity_rotation      = 0             # A
         self.motion_acceleration    = 0             # m
         self.rotation_acceleration  = 0             # r
@@ -135,8 +144,8 @@ class Cursor(Profile):
     """
     def __init__(self, session_id):
         super(Cursor, self).__init__(session_id)
-        self.position               = tuple(0, 0)   # x,y
-        self.velocity               = tuple(0, 0)   # X,Y
+        self.position               = (0, 0)   # x,y
+        self.velocity               = (0, 0)   # X,Y
         self.motion_acceleration    = 0             # m
 
     def get_message(self):
@@ -166,14 +175,14 @@ class Blob(Profile):
     """
     def __init__(self, session_id):
         super(Blob, self).__init__(session_id)
-        self.position               = tuple(0, 0)   # x,y
-        self.angle                  =  0            # a
+        self.position               = (0, 0)        # x,y
+        self.angle                  =  5            # a
         self.dimension              = (.1, .1)      # w, h
-        self.area                   = None          # f
-        self.velocity               = tuple(0, 0)   # X,Y
-        self.velocity_rotation      = 0             # A
-        self.motion_acceleration    = 0             # m
-        self.rotation_acceleration  = 0             # r
+        self.area                   = 0.1           # f
+        self.velocity               = (0.1, 0.1)    # X,Y
+        self.velocity_rotation      = 0.1           # A
+        self.motion_acceleration    = 0.1           # m
+        self.rotation_acceleration  = 0.1           # r
 
     def get_message(self):
         """
@@ -181,6 +190,7 @@ class Blob(Profile):
         """
         x, y = self.position
         X, Y = self.velocity
+        w, h = self.dimension
         builder = OscMessageBuilder(address=TUIO_BLOB)
         for val in [
                 "set",
@@ -188,7 +198,8 @@ class Blob(Profile):
                 float(x),
                 float(y),
                 float(self.angle),
-                float(self.dimension),
+                float(w),
+                float(h),
                 float(self.area),
                 float(X),
                 float(Y),
