@@ -11,7 +11,9 @@ testpython :
 	./TuioDemo &		
 	python3 -m pytest 				
 		
-
+install_req :
+	pip3 install -r pip_requirements.txt
+	pip3 install -r pip_test_requirements.txt
 
 upload_pip:
 	rm -r ./dist
