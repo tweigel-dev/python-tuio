@@ -1,0 +1,66 @@
+---
+stages:
+    - lint
+    - testing
+    - deploy
+
+
+
+lint:
+  stage: lint
+  image: python:3.7
+  before_script:
+    # Install all requirements
+    - make install_req
+  script:
+    # Run pylint
+    - make lint
+  artifacts:
+    when: always
+    name: pylint_report
+    expire_in: 4 week
+    paths:
+      - ./lint_report.html
+
+
+
+test:
+  stage: testing
+  image: python:3.7
+  before_script:
+    # Install all requirements
+    - make install_req
+  script:
+    # Execute tests
+    - make testpython
+
+  artifacts:
+    name: pytest_report
+    expire_in: 4 week
+    when: always
+    paths:
+      - ./reports
+  when: always    
+
+
+  pip_deploy:
+    stage: delpoy
+    image: python:3.7
+    before_script:
+      - make install_req
+    script:
+      # Execute tests
+      - make upload_pip
+    after_script:
+      # Merging stylesheets of pytest and pytest-cov
+      # Preparing coverage report for merge
+      - make combine_outputs
+
+    artifacts:
+      name: pytest_report
+      expire_in: 4 week
+      when: always
+      paths:
+        - ./reports
+    when: master 
+...
