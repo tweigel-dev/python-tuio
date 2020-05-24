@@ -47,13 +47,9 @@ pip_deploy:
     image: python:3.7
     before_script:
       - make install_req
+      - pip3 install setuptools wheel twine
     script:
-      # Execute tests
       - make upload_pip
-    after_script:
-      # Merging stylesheets of pytest and pytest-cov
-      # Preparing coverage report for merge
-      - make combine_outputs
 
     artifacts:
       name: pytest_report
