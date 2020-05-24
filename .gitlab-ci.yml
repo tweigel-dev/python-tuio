@@ -1,8 +1,8 @@
 ---
 stages:
-    - lint
-    - testing
-    - deploy
+  - lint
+  - testing
+  - deploy
 
 
 
@@ -42,9 +42,8 @@ test:
       - ./reports
   when: always    
 
-
-  pip_deploy:
-    stage: delpoy
+pip_deploy:
+    stage: deploy
     image: python:3.7
     before_script:
       - make install_req
@@ -62,5 +61,7 @@ test:
       when: always
       paths:
         - ./reports
-    when: master 
+    only:
+      - master
+
 ...
