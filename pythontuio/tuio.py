@@ -8,17 +8,23 @@ from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 
 
-
 class TuioServer(udp_client.UDPClient):
     """
     Tuio client based on a basic osc udp client of the lib python-osc
+
+    Notice that TuioSource is not implemented yet
     """
+    
     def __init__(self, ip: str ="127.0.0.1" , port :int=3333):
         super(TuioServer, self).__init__(ip, port)
-
+        self._ip = ip
+        self._port = port
         self.cursors : list = []
         self.objects : list = []
         self.blobs   : list = []
+        self.is_full_update : bool = False
+        self._periodic_messages : bool = False
+        self._intervall : int = 1000
 
     def send_bundle(self):
         """Build :class:`OscMessage` from arguments and send to server
@@ -43,6 +49,7 @@ class TuioServer(udp_client.UDPClient):
         for blob  in self.blobs:
             builder.add_arg(blob.session_id) ## add id of blobs
         alive_msg = builder.build()
+
         builder = OscMessageBuilder(address=TUIO_OBJECT)
         for o  in self.objects:
             builder.add_arg(o.session_id) ## add id of objects
@@ -75,5 +82,29 @@ class TuioServer(udp_client.UDPClient):
         # build bundle and send
         bundle = bundle_builder.build()
         self.send(bundle)
+
+    def disable_periodic_messages(self, ):
+        """
+        Not implemented
+        """
+        self._periodic_messages = False
+        raise Exception("Not implemented")
+
+    def enable_periodic_messages(self, intervall:int):
+        """
+        Not implemented
+        """
+        self._periodic_messages = True
+        self._intervall = intervall
+        raise Exception("Not implemented")
+
+    def set_source_name(self, _name : str, ip :str=None):
+        """
+        Not implemented
+        """
+        if ip is not None:
+            ip = self._ip
+
+        raise Exception("Not implemented")
 
 
