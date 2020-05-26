@@ -1,37 +1,24 @@
-"""
-this python file is written orientated by the TUIO spezification
-https://www.tuio.org/?specification
-It supports only 2D Object|Blob|Cursor
 
-            Profile
-                |
-    ---------------------
-    |           |       |
-  Object     Cursor    Blob
-
-
-"""
 
 from pythonosc import udp_client
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
+from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 
 
-TUIO_CURSOR = "/tuio/2Dcur"
-TUIO_OBJECT = "/tuio/2Dobj"
-TUIO_BLOB   = "/tuio/2Dblb"
+
 
 class TuioServer(udp_client.UDPClient):
     """
     Tuio client based on a basic osc udp client of the lib python-osc
     """
-    def __init__(self, ip="127.0.0.1", port=3333):
+    def __init__(self, ip: str ="127.0.0.1" , port :int=3333):
         super(TuioServer, self).__init__(ip, port)
 
-        self.cursors = []
-        self.objects = []
-        self.blobs   = []
+        self.cursors : list = []
+        self.objects : list = []
+        self.blobs   : list = []
 
     def send_bundle(self):
         """Build :class:`OscMessage` from arguments and send to server
@@ -52,12 +39,13 @@ class TuioServer(udp_client.UDPClient):
             builder.add_arg(cursor.session_id) ## add id of cursors
         alive_msg = builder.build()
 
-        for cursor  in self.blobs:
-            builder.add_arg(cursor.session_id) ## add id of blobs
+        builder = OscMessageBuilder(address=TUIO_BLOB)
+        for blob  in self.blobs:
+            builder.add_arg(blob.session_id) ## add id of blobs
         alive_msg = builder.build()
-
-        for cursor  in self.objects:
-            builder.add_arg(cursor.session_id) ## add id of objects
+        builder = OscMessageBuilder(address=TUIO_OBJECT)
+        for o  in self.objects:
+            builder.add_arg(o.session_id) ## add id of objects
         alive_msg = builder.build()
 
         bundle_builder.add_content(alive_msg)

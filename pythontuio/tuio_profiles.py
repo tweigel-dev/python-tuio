@@ -1,4 +1,23 @@
 
+"""
+this python file is written orientated by the TUIO spezification
+https://www.tuio.org/?specification
+It supports only 2D Object|Blob|Cursor
+
+            Profile
+                |
+    ---------------------
+    |           |       |
+  Object     Cursor    Blob
+
+
+"""
+
+from pythonosc.osc_message_builder import OscMessageBuilder
+
+TUIO_CURSOR = "/tuio/2Dcur"
+TUIO_OBJECT = "/tuio/2Dobj"
+TUIO_BLOB   = "/tuio/2Dblb"
 
 class Profile:
     """
