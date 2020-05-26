@@ -22,12 +22,12 @@ TUIO_CURSOR = "/tuio/2Dcur"
 TUIO_OBJECT = "/tuio/2Dobj"
 TUIO_BLOB   = "/tuio/2Dblb"
 
-class TuioClient(udp_client.UDPClient):
+class TuioServer(udp_client.UDPClient):
     """
     Tuio client based on a basic osc udp client of the lib python-osc
     """
     def __init__(self, ip="127.0.0.1", port=3333):
-        super(TuioClient, self).__init__(ip, port)
+        super(TuioServer, self).__init__(ip, port)
 
         self.cursors = []
         self.objects = []

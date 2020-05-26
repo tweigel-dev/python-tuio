@@ -1,4 +1,5 @@
-from pythontuio.tuio import TuioClient
+
+from pythontuio.tuio import TuioServer
 from pythontuio.tuio import Cursor
 from pythontuio.tuio import Blob
 from pythontuio.tuio import Object
@@ -11,7 +12,7 @@ from pythontuio.tuio import Object
 
 def test_cursor():
 
-    client = TuioClient()
+    client = TuioServer()
 
     i = 0
     cursor = Cursor(1213)
@@ -32,7 +33,7 @@ def test_cursor():
 
 def test_blob():
 
-    client = TuioClient()
+    client = TuioServer()
 
     i = 0
     blob = Blob(13)
@@ -52,7 +53,7 @@ def test_blob():
     assert True
 
 def test_object():
-    client = TuioClient()
+    client = TuioServer()
 
     i = 0
     ob = Object(13)
