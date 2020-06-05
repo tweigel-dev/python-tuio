@@ -7,7 +7,6 @@ from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
 from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
-
 class TuioDispatcher(Dispatcher):
     def __init__(self):
         super(TuioDispatcher, self).__init__()
@@ -24,7 +23,7 @@ class TuioClient(TuioDispatcher, OSCUDPServer):
         TuioDispatcher.__init__(self)
         OSCUDPServer.__init__(self,server_address, self)
         self.connected = False
-        self.
+
 
 
 
@@ -36,7 +35,7 @@ class TuioServer(TuioDispatcher, UDPClient):
 
     Notice that TuioSource is not implemented yet
     """
-    
+
     def __init__(self, ip: str ="127.0.0.1" , port :int=3333):
         UDPClient.__init__(self,ip, port)
         TuioDispatcher.__init__(self)
@@ -127,5 +126,4 @@ class TuioServer(TuioDispatcher, UDPClient):
             ip = self._ip
 
         raise Exception("Not implemented")
-
 
