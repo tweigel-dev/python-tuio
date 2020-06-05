@@ -1,8 +1,8 @@
 
-from pythontuio.tuio import TuioServer
-from pythontuio.tuio_profiles import Cursor
-from pythontuio.tuio_profiles import Blob
-from pythontuio.tuio_profiles import Object
+from pythontuio import TuioServer
+from pythontuio import Cursor
+from pythontuio import Blob
+from pythontuio import Object
 
 
 
