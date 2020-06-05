@@ -10,6 +10,11 @@ http://opensoundcontrol.org/spec-1_0
 and 
 https://python-osc.readthedocs.io/en/latest/
 
+## Notes
+
+Currently only the Server(Tracker) is implemented. The Client will follow.
+[GitHub]( https://github.com/tweigel-dev/python-tuio)
+
 #### API example of C++ 
 https://www.tuio.org/?cpp
 ## Installation
@@ -36,3 +41,8 @@ https://www.tuio.org/?cpp
 
         client.send_bundle()
         time.sleep(0.1)
+
+## Contribution
+Feel free to contribute inputs. Just start a MR with your changes.
+
+[GitHub]( https://github.com/tweigel-dev/python-tuio)
