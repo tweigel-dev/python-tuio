@@ -1,4 +1,19 @@
-from typing import List, Tuple
+
+"""
+              TuioDispatcher
+                    |
+                    |
+            ---------------------
+            |                   |
+        TuioClient          TuioServer
+
+
+"""
+
+
+from typing import  Tuple
+from abc import ABC # abstract base class of python
+from threading import Thread
 
 from pythonosc.udp_client import UDPClient
 from pythonosc.osc_server import OSCUDPServer
@@ -7,17 +22,64 @@ from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
 from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
+
 class TuioDispatcher(Dispatcher):
+    """
+    class to hold Eventlistener and the TuioCursors, TuioBlobs, and TuioObjects
+    """
     def __init__(self):
         super(TuioDispatcher, self).__init__()
         self.cursors : list = []
         self.objects : list = []
         self.blobs   : list = []
-        self.listener = None #TODO not implemented yet
+        self.listener : list = []
+
+
+# pylint: disable=unnecessary-pass
+class TuioListener(ABC):
+    """
+    Abstract TuioListener to define callbacks für the diffrent tuio events
+    """
+    def add_tuio_object(self, obj):
+        """Abstract function to add a behavior for tuio add object event"""
+        pass
+    def update_tuio_object(self, obj):
+        """Abstract function to add a behavior for tuio update object event"""
+        pass
+    def remove_tuio_object(self, obj):
+        """Abstract function to add a behavior for tuio remove object event"""
+        pass
+
+    def add_tuio_cursor(self, cur):
+        """Abstract function to add a behavior for tuio add cursor event"""
+        pass
+    def update_tuio_cursor(self, cur):
+        """Abstract function to add a behavior for tuio update cursor event"""
+        pass
+    def remove_tuio_cursor(self, cur):
+        """Abstract function to add a behavior for tuio remove cursor event"""
+        pass
+
+    def add_tuio_blob(self, blob):
+        """Abstract function to add a behavior for tuio add blob event"""
+        pass
+    def update_tuio_blob(self, blob):
+        """Abstract function to add a behavior for tuio update blob event"""
+        pass
+    def remove_tuio_blob(self, blob):
+        """Abstract function to add a behavior for tuio remove blob event"""
+        pass
+    def refresh(self, time):
+        pass
+# pylint: enable=unnecessary-pass
 
 class TuioClient(TuioDispatcher, OSCUDPServer):
     """
-    Tuio Client which recives TuioProtocol udp packages
+    The TuioClient class is the central TUIO protocol decoder component.
+    It provides a simple callback infrastructure using the TuioListener interface. 
+    In order to receive and decode TUIO messages an instance of TuioClient needs to be created. 
+    The TuioClient instance then generates TUIO events which are broadcasted to all
+    registered classes that implement the TuioListener interface.
     """
     def __init__(self, server_address: Tuple[str, int]):
         TuioDispatcher.__init__(self)
@@ -126,4 +188,3 @@ class TuioServer(TuioDispatcher, UDPClient):
             ip = self._ip
 
         raise Exception("Not implemented")
-
