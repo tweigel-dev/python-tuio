@@ -5,9 +5,9 @@ from pythontuio import Blob
 from pythontuio import Object
 
 from pythontuio import TuioClient
+from pythontuio import TuioListener
 
-
-
+from threading import Thread
 
 
 def test_cursor():
@@ -76,7 +76,32 @@ def test_client_starts():
     client = TuioClient(("localhost",3333))
     client.start()
 
+def test_dispatcher_listener():
+
+    client = TuioClient(("localhost",3333))
+    class MyListener(TuioListener):
+        def add_tuio_cursor(self, cursor):
+            print("detect a new Cursor")
+            assert type(2) == type(cursor.session_id)   # look if sessionid is a number
+    listener = MyListener()
+    client.add_listener(listener)
+    print("listening for one message")
+    t = Thread(target=client.start)
+    t.start()
+    
+    server = TuioServer()
+
+    cursor = Cursor(1213)
+    cursor.velocity             = (0.2,0.1)
+    cursor.motion_acceleration  = 0.1 
+    server.cursors.append(cursor)
+    cursor.position  = (0.5,0.5)
+    server.send_bundle()
+    print("sented message")
+
+   
 
 if __name__ == "__main__":
     test_cursor()
-    test_client_starts()
+    #test_client_starts()
+    test_dispatcher_listener()
