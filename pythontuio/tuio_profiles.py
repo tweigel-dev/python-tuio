@@ -15,9 +15,8 @@ It supports only 2D Object|Blob|Cursor
 
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_message import OscMessage
-TUIO_CURSOR = "/tuio/2Dcur"
-TUIO_OBJECT = "/tuio/2Dobj"
-TUIO_BLOB   = "/tuio/2Dblb"
+
+from pythontuio.const import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 class Profile:
     """
