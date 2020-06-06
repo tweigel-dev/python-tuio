@@ -28,24 +28,10 @@ class TuioDispatcher(Dispatcher):
         self.set_default_handler(self._default_handler)
 
     def _cursor_handler(self, address, ttype, *args):
-        cursor = None
         print(f"{address}:{ttype} {args}")
         if ttype == TUIO_ALIVE :
             cursors = self.cursors.copy()
-            new_cursors = []
-            for session_id in args:
-                cursor_match = None
-                # search for cursor
-                for cursor in cursors:
-                    if cursor.session_id == session_id:
-                        cursor_match = cursor
-                # if match found copy it
-                if cursor_match is not None:
-                    new_cursors.append(cursor_match)
-                # else add new one
-                else :
-                    new_cursors.append(Cursor(session_id))
-            self.cursors = new_cursors
+            self.cursors = _sort_matchs(cursors,args,Cursor)
 
         elif ttype == TUIO_SET:
             for cursor in self.cursors:
@@ -64,11 +50,48 @@ class TuioDispatcher(Dispatcher):
 
 
     def _object_handler(self, address, ttype, *args):
-        raise NotImplementedError()
+        print(f"{address}:{ttype} {args}")
+        if ttype == TUIO_ALIVE :
+            objects = self.objects.copy()
+            self.cursors = _sort_matchs(objects,args,Object)
+
+        elif ttype == TUIO_SET:
+            for obj in self.objects:
+                if obj.session_id != args[0]:
+                    continue
+                obj.class_id               = args[1]                # i
+                obj.position               = (args[2], args[3])     # x,y
+                obj.angle                  = args[4]                # a
+                obj.velocity               = (args[5], args[6])     # X,Y
+                obj.velocity_rotation      = args[7]                # A
+                obj.motion_acceleration    = args[8]                # m
+                obj.rotation_acceleration  = args[9]                # r
+
+        elif ttype == TUIO_END:
+            return # nothing to happend here
+        elif ttype == TUIO_SOURCE:
+            print(f"Message by {args} reveiced")
+        else:
+            raise Exception("Broken TUIO Package")
 
     def _blob_handler(self, address, ttype, *args):
         raise NotImplementedError()
 
+def _sort_matchs(profiles, session_ids, Profile_type):
+    new_profiles = []
+    for session_id in session_ids:
+        profil_match = None
+        # search for cursor
+        for profile in profiles:
+            if profile.session_id == session_id:
+                profil_match = profile
+        # if match found copy it
+        if profil_match is not None:
+            new_profiles.append(profil_match)
+        # else add new one
+        else :
+            new_profiles.append(Profile_type(session_id))
+    return new_profiles
 
 # pylint: disable=unnecessary-pass
 class TuioListener(ABC):
