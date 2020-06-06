@@ -81,6 +81,10 @@ class TuioDispatcher(Dispatcher):
                 cursor.position = (args[1], args[2])
                 cursor.velocity = (args[3], args[4])
                 cursor.motion_acceleration = args[5]
+                # call add cursor event
+                for listener in self._listener:
+                    listener.add_tuio_cursor(cursor)
+              
 
         elif ttype == TUIO_END:
             return # nothing to happend here
@@ -108,6 +112,8 @@ class TuioDispatcher(Dispatcher):
                 obj.motion_acceleration    = args[8]                # m
                 obj.rotation_acceleration  = args[9]                # r
 
+                 # call add object event
+                map(lambda x, obj=obj: x.add_tuio_object(obj),self._listener) 
         elif ttype == TUIO_END:
             return # nothing to happend here
         elif ttype == TUIO_SOURCE:
@@ -133,6 +139,8 @@ class TuioDispatcher(Dispatcher):
                 blob.velocity_rotation      = args[9]                # A
                 blob.motion_acceleration    = args[10]               # m
                 blob.rotation_acceleration  = args[11]               # r
+                # call add blob event
+                map(lambda x, blob=blob: x.add_tuio_blob(blob),self._listener)  
 
         elif ttype == TUIO_END:
             return # nothing to happend here
