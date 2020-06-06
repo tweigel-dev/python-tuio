@@ -71,3 +71,7 @@ def test_object():
         client.send_bundle()
         print("sented message")
     assert True
+
+
+if __name__ == "__main__":
+    test_cursor()
