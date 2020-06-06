@@ -12,6 +12,47 @@ from pythontuio.const import TUIO_END,TUIO_ALIVE,TUIO_SET, TUIO_SOURCE
 
 
 
+# pylint: disable=unnecessary-pass
+class TuioListener(ABC):
+    """
+    Abstract TuioListener to define callbacks für the diffrent tuio events
+    """
+    def add_tuio_object(self, obj):
+        """Abstract function to add a behavior for tuio add object event"""
+        pass
+    def update_tuio_object(self, obj):
+        """Abstract function to add a behavior for tuio update object event"""
+        pass
+    def remove_tuio_object(self, obj):
+        """Abstract function to add a behavior for tuio remove object event"""
+        pass
+
+    def add_tuio_cursor(self, cur):
+        """Abstract function to add a behavior for tuio add cursor event"""
+        pass
+    def update_tuio_cursor(self, cur):
+        """Abstract function to add a behavior for tuio update cursor event"""
+        pass
+    def remove_tuio_cursor(self, cur):
+        """Abstract function to add a behavior for tuio remove cursor event"""
+        pass
+
+    def add_tuio_blob(self, blob):
+        """Abstract function to add a behavior for tuio add blob event"""
+        pass
+    def update_tuio_blob(self, blob):
+        """Abstract function to add a behavior for tuio update blob event"""
+        pass
+    def remove_tuio_blob(self, blob):
+        """Abstract function to add a behavior for tuio remove blob event"""
+        pass
+    def refresh(self, time):
+        """Abstract This callback method is invoked by the TuioClient
+        to mark the end of a received TUIO message bundle."""
+        pass
+# pylint: enable=unnecessary-pass
+
+
 class TuioDispatcher(Dispatcher):
     """
     class to hold Eventlistener and the TuioCursors, TuioBlobs, and TuioObjects
@@ -21,7 +62,7 @@ class TuioDispatcher(Dispatcher):
         self.cursors : list = []
         self.objects : list = []
         self.blobs   : list = []
-        self.listener : list = []
+        self._listener : list = []
         self.map(f"{TUIO_CURSOR}*", self._cursor_handler)
         self.map(f"{TUIO_OBJECT}*", self._object_handler)
         self.map(f"{TUIO_BLOB}*", self._blob_handler)
@@ -100,6 +141,23 @@ class TuioDispatcher(Dispatcher):
         else:
             raise Exception("Broken TUIO Package")
 
+    def add_listener(self, listener :TuioListener):
+        """
+        Adds the provided TuioListener to the list of registered TUIO event listeners
+        """
+        self._listener.append(listener)
+
+    def remove_listener(self, listener :TuioListener):
+        """
+        Removes the provided TuioListener from the list of registered TUIO event listeners
+        """
+        self._listener.remove(listener)
+
+    def remove_all_listeners(self):
+        """
+        Removes all provided TuioListeners from the list of registered TUIO event listeners
+        """
+        self._listener.clear()
 def _sort_matchs(profiles, session_ids, Profile_type):
     new_profiles = []
     for session_id in session_ids:
@@ -115,43 +173,3 @@ def _sort_matchs(profiles, session_ids, Profile_type):
         else :
             new_profiles.append(Profile_type(session_id))
     return new_profiles
-
-# pylint: disable=unnecessary-pass
-class TuioListener(ABC):
-    """
-    Abstract TuioListener to define callbacks für the diffrent tuio events
-    """
-    def add_tuio_object(self, obj):
-        """Abstract function to add a behavior for tuio add object event"""
-        pass
-    def update_tuio_object(self, obj):
-        """Abstract function to add a behavior for tuio update object event"""
-        pass
-    def remove_tuio_object(self, obj):
-        """Abstract function to add a behavior for tuio remove object event"""
-        pass
-
-    def add_tuio_cursor(self, cur):
-        """Abstract function to add a behavior for tuio add cursor event"""
-        pass
-    def update_tuio_cursor(self, cur):
-        """Abstract function to add a behavior for tuio update cursor event"""
-        pass
-    def remove_tuio_cursor(self, cur):
-        """Abstract function to add a behavior for tuio remove cursor event"""
-        pass
-
-    def add_tuio_blob(self, blob):
-        """Abstract function to add a behavior for tuio add blob event"""
-        pass
-    def update_tuio_blob(self, blob):
-        """Abstract function to add a behavior for tuio update blob event"""
-        pass
-    def remove_tuio_blob(self, blob):
-        """Abstract function to add a behavior for tuio remove blob event"""
-        pass
-    def refresh(self, time):
-        """Abstract This callback method is invoked by the TuioClient
-        to mark the end of a received TUIO message bundle."""
-        pass
-# pylint: enable=unnecessary-pass
