@@ -9,5 +9,5 @@ from pythontuio.tuio_profiles import TUIO_CURSOR
 from pythontuio.tuio_profiles import TUIO_BLOB
 
 from pythontuio.tuio import TuioServer
-
-
+from pythontuio.tuio import TuioClient
+from pythontuio.tuio import TuioListener

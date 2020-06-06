@@ -4,7 +4,7 @@ from pythontuio import Cursor
 from pythontuio import Blob
 from pythontuio import Object
 
-
+from pythontuio import TuioClient
 
 
 
@@ -72,6 +72,11 @@ def test_object():
         print("sented message")
     assert True
 
+def test_client_starts():
+    client = TuioClient(("localhost",3333))
+    client.start()
+
 
 if __name__ == "__main__":
     test_cursor()
+    test_client_starts()

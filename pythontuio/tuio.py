@@ -16,12 +16,12 @@ from abc import ABC # abstract base class of python
 from threading import Thread
 
 from pythonosc.udp_client import UDPClient
-from pythonosc.osc_server import OSCUDPServer
+from pythonosc.osc_server import BlockingOSCUDPServer
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
 from pythontuio import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
-
+from pythontuio import Cursor, Blob, Object
 
 class TuioDispatcher(Dispatcher):
     """
@@ -33,7 +33,21 @@ class TuioDispatcher(Dispatcher):
         self.objects : list = []
         self.blobs   : list = []
         self.listener : list = []
+        self.map(f"{TUIO_CURSOR}*", cursor_handler)
+        self.map(f"{TUIO_OBJECT}*", object_handler)
+        self.map(f"{TUIO_BLOB}*", blob_handler)
+        self.set_default_handler(default_handler)
 
+def _cursor_handler(address, *args):
+    # cursor = Cursor()
+    print(f"{address}: {args}")
+    pass
+def _object_handler(address, *args):
+    pass
+def _blob_handler(address, *args):
+    pass
+def _default_handler(address, *args):
+    pass    
 
 # pylint: disable=unnecessary-pass
 class TuioListener(ABC):
@@ -73,7 +87,7 @@ class TuioListener(ABC):
         pass
 # pylint: enable=unnecessary-pass
 
-class TuioClient(TuioDispatcher, OSCUDPServer):
+class TuioClient(TuioDispatcher, BlockingOSCUDPServer):
     """
     The TuioClient class is the central TUIO protocol decoder component.
     It provides a simple callback infrastructure using the TuioListener interface. 
@@ -83,12 +97,19 @@ class TuioClient(TuioDispatcher, OSCUDPServer):
     """
     def __init__(self, server_address: Tuple[str, int]):
         TuioDispatcher.__init__(self)
-        OSCUDPServer.__init__(self,server_address, self)
+        BlockingOSCUDPServer.__init__(self,server_address, self)
         self.connected = False
 
+    def server_bind(self):
+        print(f"starting tuio-client at port {self.server_address[1]}")
+        super().server_bind()
+        self.handle_request()
 
-
-
+    def server_close(self):
+        print(f"stopping tuio-client")
+        super().server_close()
+    def start(self):
+        self.serve_forever()
 
 class TuioServer(TuioDispatcher, UDPClient):
 
