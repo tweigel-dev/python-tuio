@@ -1,9 +1,12 @@
+"""
+classes to handle incoming osc messages
+"""
 from abc import ABC # abstract base class of python
 
 from pythonosc.dispatcher import Dispatcher
 
-from pythontuio import Cursor, Blob, Object
-from pythontuio import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
+from pythontuio.tuio_profiles import Cursor, Blob, Object
+from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 class TuioDispatcher(Dispatcher):
     """
@@ -23,15 +26,15 @@ class TuioDispatcher(Dispatcher):
 def _cursor_handler(address, *args):
     # cursor = Cursor()
     print(f"{address}: {args}")
-    pass
-def _object_handler(address, *args):
-    print("object")
-    pass
-def _blob_handler(address, *args):
-    pass
-def _default_handler(address, *args):
-    pass    
 
+def _object_handler(_address, *_args):
+    raise NotImplementedError()
+
+def _blob_handler(_address, *_args):
+    raise NotImplementedError()
+
+def _default_handler(_address, *_args):
+    raise NotImplementedError()
 # pylint: disable=unnecessary-pass
 class TuioListener(ABC):
     """
@@ -67,5 +70,7 @@ class TuioListener(ABC):
         """Abstract function to add a behavior for tuio remove blob event"""
         pass
     def refresh(self, time):
+        """Abstract This callback method is invoked by the TuioClient
+        to mark the end of a received TUIO message bundle."""
         pass
 # pylint: enable=unnecessary-pass

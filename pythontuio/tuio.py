@@ -13,24 +13,23 @@
 
 from typing import  Tuple
 
-from threading import Thread
 
 from pythonosc.udp_client import UDPClient
 from pythonosc.osc_server import BlockingOSCUDPServer
 
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
-from pythontuio import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
+from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 from pythontuio.dispatcher import TuioDispatcher
 
 
 
 
-class TuioClient(TuioDispatcher, BlockingOSCUDPServer):
+class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-many-ancestors
     """
     The TuioClient class is the central TUIO protocol decoder component.
-    It provides a simple callback infrastructure using the TuioListener interface. 
-    In order to receive and decode TUIO messages an instance of TuioClient needs to be created. 
+    It provides a simple callback infrastructure using the TuioListener interface.
+    In order to receive and decode TUIO messages an instance of TuioClient needs to be created.
     The TuioClient instance then generates TUIO events which are broadcasted to all
     registered classes that implement the TuioListener interface.
     """
@@ -45,9 +44,12 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer):
         self.handle_request()
 
     def server_close(self):
-        print(f"stopping tuio-client")
+        print("stopping tuio-client")
         super().server_close()
     def start(self):
+        """
+        start serving for UDP OSC packages
+        """
         self.serve_forever()
 
 class TuioServer(TuioDispatcher, UDPClient):
