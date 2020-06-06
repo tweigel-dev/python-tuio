@@ -75,7 +75,30 @@ class TuioDispatcher(Dispatcher):
             raise Exception("Broken TUIO Package")
 
     def _blob_handler(self, address, ttype, *args):
-        raise NotImplementedError()
+        print(f"{address}:{ttype} {args}")
+        if ttype == TUIO_ALIVE :
+            blobs = self.blobs.copy()
+            self.blobs = _sort_matchs(blobs,args,Blob)
+
+        elif ttype == TUIO_SET:
+            for blob in self.blobs:
+                if blob.session_id != args[0]:
+                    continue
+                blob.position               = (args[1], args[2])     # x,y
+                blob.angle                  = args[3]                # a
+                blob.dimension              = (args[4], args[5])     # w, h
+                blob.area                   = args[6]                # f
+                blob.velocity               = (args[7], args[8])     # X,Y
+                blob.velocity_rotation      = args[9]                # A
+                blob.motion_acceleration    = args[10]               # m
+                blob.rotation_acceleration  = args[11]               # r
+
+        elif ttype == TUIO_END:
+            return # nothing to happend here
+        elif ttype == TUIO_SOURCE:
+            print(f"Message by {args} reveiced")
+        else:
+            raise Exception("Broken TUIO Package")
 
 def _sort_matchs(profiles, session_ids, Profile_type):
     new_profiles = []
