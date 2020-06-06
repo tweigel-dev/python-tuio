@@ -20,7 +20,7 @@ from pythonosc.osc_server import OSCUDPServer
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
-from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
+from pythontuio import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 
 class TuioDispatcher(Dispatcher):
@@ -125,18 +125,22 @@ class TuioServer(TuioDispatcher, UDPClient):
         builder.add_arg("alive")
         for cursor in self.cursors:
             builder.add_arg(cursor.session_id) ## add id of cursors
+
         alive_msg = builder.build()
+        bundle_builder.add_content(alive_msg)
 
         builder = OscMessageBuilder(address=TUIO_BLOB)
         for blob in self.blobs:
             builder.add_arg(blob.session_id) ## add id of blobs
+
         alive_msg = builder.build()
+        bundle_builder.add_content(alive_msg)
 
         builder = OscMessageBuilder(address=TUIO_OBJECT)
         for o in self.objects:
             builder.add_arg(o.session_id) ## add id of objects
-        alive_msg = builder.build()
 
+        alive_msg = builder.build()
         bundle_builder.add_content(alive_msg)
 
         # set message of cursor
