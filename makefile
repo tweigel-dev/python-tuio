@@ -2,7 +2,7 @@ all:
 	echo "specify target"
 
 run :
-	python3 pythontuio/tuio.py
+	python3 -m pythontuio.tuio
 
 lint :
 	python3 -m pylint ./pythontuio/ --msg-template='{msg_id}:{line:3d},{column}: {obj}: {msg}'

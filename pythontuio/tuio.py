@@ -1,37 +1,76 @@
-"""
-this python file is written orientated by the TUIO spezification
-https://www.tuio.org/?specification
-It supports only 2D Object|Blob|Cursor
 
-            Profile
-                |
-    ---------------------
-    |           |       |
-  Object     Cursor    Blob
+"""
+              TuioDispatcher
+                    |
+                    |
+            ---------------------
+            |                   |
+        TuioClient          TuioServer
 
 
 """
 
-from pythonosc import udp_client
+
+from typing import  Tuple
+
+
+from pythonosc.udp_client import UDPClient
+from pythonosc.osc_server import BlockingOSCUDPServer
+
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_bundle_builder import OscBundleBuilder
+from pythontuio.const import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
+from pythontuio.dispatcher import TuioDispatcher
 
 
 
-TUIO_CURSOR = "/tuio/2Dcur"
-TUIO_OBJECT = "/tuio/2Dobj"
-TUIO_BLOB   = "/tuio/2Dblb"
 
-class TuioClient(udp_client.UDPClient):
+class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-many-ancestors
+    """
+    The TuioClient class is the central TUIO protocol decoder component.
+    It provides a simple callback infrastructure using the TuioListener interface.
+    In order to receive and decode TUIO messages an instance of TuioClient needs to be created.
+    The TuioClient instance then generates TUIO events which are broadcasted to all
+    registered classes that implement the TuioListener interface.
+    """
+    def __init__(self, server_address: Tuple[str, int]):
+        TuioDispatcher.__init__(self)
+        self._dispatcher = self
+        BlockingOSCUDPServer.__init__(self,server_address, self)
+        self.connected = False
+
+
+    def server_bind(self):
+        print(f"starting tuio-client at port {self.server_address[1]}")
+        super().server_bind()
+        self.handle_request()
+
+    def server_close(self):
+        print("stopping tuio-client")
+        super().server_close()
+    def start(self):
+        """
+        start serving for UDP OSC packages
+        """
+        self.serve_forever()
+
+class TuioServer(TuioDispatcher, UDPClient):
+
     """
     Tuio client based on a basic osc udp client of the lib python-osc
-    """
-    def __init__(self, ip="127.0.0.1", port=3333):
-        super(TuioClient, self).__init__(ip, port)
 
-        self.cursors = []
-        self.objects = []
-        self.blobs   = []
+    Notice that TuioSource is not implemented yet
+    """
+
+    def __init__(self, ip: str ="127.0.0.1" , port :int=3333):
+        UDPClient.__init__(self,ip, port)
+        TuioDispatcher.__init__(self)
+        self._ip = ip
+        self._port = port
+
+        self.is_full_update : bool = False
+        self._periodic_messages : bool = False
+        self._intervall : int = 1000
 
     def send_bundle(self):
         """Build :class:`OscMessage` from arguments and send to server
@@ -48,18 +87,24 @@ class TuioClient(udp_client.UDPClient):
         builder = OscMessageBuilder(address=TUIO_CURSOR)
 
         builder.add_arg("alive")
-        for cursor  in self.cursors:
+        for cursor in self.cursors:
             builder.add_arg(cursor.session_id) ## add id of cursors
-        alive_msg = builder.build()
 
-        for cursor  in self.blobs:
-            builder.add_arg(cursor.session_id) ## add id of blobs
         alive_msg = builder.build()
+        bundle_builder.add_content(alive_msg)
 
-        for cursor  in self.objects:
-            builder.add_arg(cursor.session_id) ## add id of objects
+        builder = OscMessageBuilder(address=TUIO_BLOB)
+        for blob in self.blobs:
+            builder.add_arg(blob.session_id) ## add id of blobs
+
         alive_msg = builder.build()
+        bundle_builder.add_content(alive_msg)
 
+        builder = OscMessageBuilder(address=TUIO_OBJECT)
+        for o in self.objects:
+            builder.add_arg(o.session_id) ## add id of objects
+
+        alive_msg = builder.build()
         bundle_builder.add_content(alive_msg)
 
         # set message of cursor
@@ -88,124 +133,26 @@ class TuioClient(udp_client.UDPClient):
         bundle = bundle_builder.build()
         self.send(bundle)
 
-
-
-
-class Profile:
-    """
-    custom class of all subjects passing the TUIO connection.
-    See more at https://www.tuio.org/?specification
-
-    """
-
-    def __init__(self, session_id):
-        self.session_id = session_id
-
-class Object(Profile):
-    """
-    TUIO Object 2D Interactive Surface
-    """
-    def __init__(self, session_id):
-        super(Object, self).__init__(session_id)
-        self.class_id               = -1            # i
-        self.position               = (0, 0)   # x,y
-        self.angle                  = 0             # a
-        self.velocity               = (0, 0)   # X,Y
-        self.velocity_rotation      = 0             # A
-        self.motion_acceleration    = 0             # m
-        self.rotation_acceleration  = 0             # r
-
-    def get_message(self):
+    def disable_periodic_messages(self, ):
         """
-        returns the OSC message of the Object with the TUIO spezification
+        Not implemented
         """
-        x, y = self.position
-        X, Y = self.velocity
-        builder = OscMessageBuilder(address=TUIO_OBJECT)
-        for val in [
-                "set",
-                int(self.session_id),
-                int(self.class_id),
-                float(x),
-                float(y),
-                float(self.angle),
-                float(X),
-                float(Y),
-                float(self.velocity_rotation),
-                float(self.motion_acceleration),
-                float(self.rotation_acceleration)
-        ]:
-            builder.add_arg(val)
-        return builder.build()
+        self._periodic_messages = False
+        raise Exception("Not implemented")
 
-class Cursor(Profile):
-    """
-    TUIO Cursor 2D Interactive Surface
-    """
-    def __init__(self, session_id):
-        super(Cursor, self).__init__(session_id)
-        self.position               = (0, 0)   # x,y
-        self.velocity               = (0, 0)   # X,Y
-        self.motion_acceleration    = 0             # m
-
-    def get_message(self):
+    def enable_periodic_messages(self, intervall:int):
         """
-        returns the OSC message of the Cursor with the TUIO spezification
+        Not implemented
         """
-        x, y = self.position
-        X, Y = self.velocity
-        builder = OscMessageBuilder(address=TUIO_CURSOR)
-        for val in [
-                "set",
-                self.session_id,
-                float(x),
-                float(y),
-                float(X),
-                float(Y),
-                float(self.motion_acceleration)
-        ]:
-            builder.add_arg(val)
-        return builder.build()
+        self._periodic_messages = True
+        self._intervall = intervall
+        raise Exception("Not implemented")
 
-
-class Blob(Profile):
-     # pylint: disable=too-many-instance-attributes
-    """
-    TUIO Blob 2D Interactive Surface
-    """
-    def __init__(self, session_id):
-        super(Blob, self).__init__(session_id)
-        self.position               = (0, 0)        # x,y
-        self.angle                  =  5            # a
-        self.dimension              = (.1, .1)      # w, h
-        self.area                   = 0.1           # f
-        self.velocity               = (0.1, 0.1)    # X,Y
-        self.velocity_rotation      = 0.1           # A
-        self.motion_acceleration    = 0.1           # m
-        self.rotation_acceleration  = 0.1           # r
-
-    def get_message(self):
+    def set_source_name(self, _name : str, ip :str=None):
         """
-        returns the OSC message of the Blob with the TUIO spezification
+        Not implemented
         """
-        x, y = self.position
-        X, Y = self.velocity
-        w, h = self.dimension
-        builder = OscMessageBuilder(address=TUIO_BLOB)
-        for val in [
-                "set",
-                self.session_id,
-                float(x),
-                float(y),
-                float(self.angle),
-                float(w),
-                float(h),
-                float(self.area),
-                float(X),
-                float(Y),
-                float(self.velocity_rotation),
-                float(self.motion_acceleration),
-                float(self.rotation_acceleration)
-        ]:
-            builder.add_arg(val)
-        return builder.build()
+        if ip is not None:
+            ip = self._ip
+
+        raise Exception("Not implemented")
