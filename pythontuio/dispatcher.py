@@ -68,7 +68,14 @@ class TuioDispatcher(Dispatcher):
         self.map(f"{TUIO_BLOB}*", self._blob_handler)
         self.set_default_handler(self._default_handler)
 
-    def _cursor_handler(self, address, ttype=None, *args):# ttype can be none because the baseclass Dispacher by OSC is requireing this
+    def _cursor_handler(self, address, *args):
+        """
+        callback to convert OSC message into TUIO Cursor
+        """
+        if len(args) == 0 :
+            raise Exception("TUIO message is Broken. No TUIO type specified")
+        ttype = args[0]
+        args = args[1:]
         print(f"{address}:{ttype} {args}")
         if ttype == TUIO_ALIVE :
             cursors = self.cursors.copy()
@@ -84,7 +91,7 @@ class TuioDispatcher(Dispatcher):
                 # call add cursor event
                 for listener in self._listener:
                     listener.add_tuio_cursor(cursor)
-              
+      
 
         elif ttype == TUIO_END:
             return # nothing to happend here
@@ -94,7 +101,14 @@ class TuioDispatcher(Dispatcher):
             raise Exception("Broken TUIO Package")
 
 
-    def _object_handler(self, address, ttype=None, *args):# ttype can be none because the baseclass Dispacher by OSC is requireing this
+    def _object_handler(self, address, *args):
+        """
+        callback to convert OSC message into TUIO Object
+        """
+        if len(args) == 0 :
+            raise Exception("TUIO message is Broken. No TUIO type specified")
+        ttype = args[0]
+        args = args[1:]
         print(f"{address}:{ttype} {args}")
         print("ttype !!!!!!!!!!!!!!!!!!!!!{ttype}")
         if ttype == TUIO_ALIVE :
@@ -114,7 +128,7 @@ class TuioDispatcher(Dispatcher):
                 obj.rotation_acceleration  = args[9]                # r
 
                  # call add object event
-                map(lambda x, obj=obj: x.add_tuio_object(obj),self._listener) 
+                map(lambda x, obj=obj: x.add_tuio_object(obj),self._listener)
         elif ttype == TUIO_END:
             return # nothing to happend here
         elif ttype == TUIO_SOURCE:
@@ -122,7 +136,14 @@ class TuioDispatcher(Dispatcher):
         else:
             raise Exception("Broken TUIO Package")
 
-    def _blob_handler(self, address, ttype=None, *args):# ttype can be none because the baseclass Dispacher by OSC is requireing this
+    def _blob_handler(self, address, *args):
+        """
+        callback to convert OSC message into TUIO Blob
+         """
+        if len(args) == 0 :
+            raise Exception("TUIO message is Broken. No TUIO type specified")
+        ttype = args[0]
+        args = args[1:]
         print(f"{address}:{ttype} {args}")
         if ttype == TUIO_ALIVE :
             blobs = self.blobs.copy()
@@ -141,7 +162,7 @@ class TuioDispatcher(Dispatcher):
                 blob.motion_acceleration    = args[10]               # m
                 blob.rotation_acceleration  = args[11]               # r
                 # call add blob event
-                map(lambda x, blob=blob: x.add_tuio_blob(blob),self._listener)  
+                map(lambda x, blob=blob: x.add_tuio_blob(blob),self._listener)
 
         elif ttype == TUIO_END:
             return # nothing to happend here
