@@ -1,4 +1,7 @@
-
+"""
+this file includes the basics of the TUIO protocol and tests the functionality. 
+It hast to start manually because it depends on TUIO input. Automatic Unit tests are planned for the future.
+"""
 from pythontuio import TuioServer
 from pythontuio import Cursor
 from pythontuio import Blob
@@ -73,22 +76,27 @@ def test_object():
     assert True
 
 def test_client_starts():
-    client = TuioClient(("localhost",3333))
+    client = TuioClient(("localhost",3333)) 
     client.start()
 
 def test_dispatcher_listener():
-
-    client = TuioClient(("localhost",3333))
+"""
+starts a client. 
+Start the tuio simpleSimulator and send TUIO data to the testclient manualy. if you notice print "detect a new Cursor" all is fine.
+"""
+    
     class MyListener(TuioListener):
         def add_tuio_cursor(self, cursor):
             print("detect a new Cursor")
             assert type(2) == type(cursor.session_id)   # look if sessionid is a number
+
+    client = TuioClient(("localhost",3333))
     listener = MyListener()
     client.add_listener(listener)
     print("listening for one message")
     t = Thread(target=client.start)
     t.start()
-    
+
     server = TuioServer()
 
     cursor = Cursor(1213)
@@ -99,7 +107,7 @@ def test_dispatcher_listener():
     server.send_bundle()
     print("sented message")
 
-   
+
 
 if __name__ == "__main__":
     test_cursor()

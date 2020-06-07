@@ -24,23 +24,23 @@ lint:
 
 
 
-test:
-  stage: testing
-  image: python:3.7
-  before_script:
-    # Install all requirements
-    - make install_req
-  script:
-    # Execute tests
-    - make testpython
+# test:
+#   stage: testing
+#   image: python:3.7
+#   before_script:
+#     # Install all requirements
+#     - make install_req
+#   script:
+#     # Execute tests
+#     - make testpython
 
-  artifacts:
-    name: pytest_report
-    expire_in: 4 week
-    when: always
-    paths:
-      - ./reports
-  when: always    
+#   artifacts:
+#     name: pytest_report
+#     expire_in: 4 week
+#     when: always
+#     paths:
+#       - ./reports
+#   when: always    
 
 pip_deploy:
     stage: deploy
