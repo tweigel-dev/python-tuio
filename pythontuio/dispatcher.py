@@ -91,7 +91,7 @@ class TuioDispatcher(Dispatcher):
                 # call add cursor event
                 for listener in self._listener:
                     listener.add_tuio_cursor(cursor)
-      
+
 
         elif ttype == TUIO_END:
             return # nothing to happend here
