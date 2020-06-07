@@ -35,8 +35,10 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
     """
     def __init__(self, server_address: Tuple[str, int]):
         TuioDispatcher.__init__(self)
+        self._dispatcher = self
         BlockingOSCUDPServer.__init__(self,server_address, self)
         self.connected = False
+
 
     def server_bind(self):
         print(f"starting tuio-client at port {self.server_address[1]}")

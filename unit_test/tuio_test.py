@@ -80,21 +80,23 @@ def test_client_starts():
     client.start()
 
 def test_dispatcher_listener():
-"""
-starts a client. 
-Start the tuio simpleSimulator and send TUIO data to the testclient manualy. if you notice print "detect a new Cursor" all is fine.
-"""
+    """
+    starts a client. 
+    Start the tuio simpleSimulator and send TUIO data to the testclient manualy. if you notice print "detect a new Cursor" all is fine.
+    """
+
+    client = TuioClient(("localhost",3333))
+    t = Thread(target=client.start)
     
     class MyListener(TuioListener):
         def add_tuio_cursor(self, cursor):
             print("detect a new Cursor")
             assert type(2) == type(cursor.session_id)   # look if sessionid is a number
 
-    client = TuioClient(("localhost",3333))
+
     listener = MyListener()
     client.add_listener(listener)
-    print("listening for one message")
-    t = Thread(target=client.start)
+
     t.start()
 
     server = TuioServer()
@@ -110,6 +112,6 @@ Start the tuio simpleSimulator and send TUIO data to the testclient manualy. if 
 
 
 if __name__ == "__main__":
-    test_cursor()
+    # test_cursor()
     #test_client_starts()
     test_dispatcher_listener()

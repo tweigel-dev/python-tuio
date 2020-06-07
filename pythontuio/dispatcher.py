@@ -68,7 +68,7 @@ class TuioDispatcher(Dispatcher):
         self.map(f"{TUIO_BLOB}*", self._blob_handler)
         self.set_default_handler(self._default_handler)
 
-    def _cursor_handler(self, address, ttype, *args):
+    def _cursor_handler(self, address, ttype=None, *args):# ttype can be none because the baseclass Dispacher by OSC is requireing this
         print(f"{address}:{ttype} {args}")
         if ttype == TUIO_ALIVE :
             cursors = self.cursors.copy()
@@ -94,8 +94,9 @@ class TuioDispatcher(Dispatcher):
             raise Exception("Broken TUIO Package")
 
 
-    def _object_handler(self, address, ttype, *args):
+    def _object_handler(self, address, ttype=None, *args):# ttype can be none because the baseclass Dispacher by OSC is requireing this
         print(f"{address}:{ttype} {args}")
+        print("ttype !!!!!!!!!!!!!!!!!!!!!{ttype}")
         if ttype == TUIO_ALIVE :
             objects = self.objects.copy()
             self.cursors = _sort_matchs(objects,args,Object)
@@ -121,7 +122,7 @@ class TuioDispatcher(Dispatcher):
         else:
             raise Exception("Broken TUIO Package")
 
-    def _blob_handler(self, address, ttype, *args):
+    def _blob_handler(self, address, ttype=None, *args):# ttype can be none because the baseclass Dispacher by OSC is requireing this
         print(f"{address}:{ttype} {args}")
         if ttype == TUIO_ALIVE :
             blobs = self.blobs.copy()
