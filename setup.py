@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="python-tuio",
-    version="0.0.6",
+    version="0.0.5",
     author="tweigel-dev",
     author_email="weigel-thomas@outlook.de",
     description="python3 implementation of the TUIO protocol",
