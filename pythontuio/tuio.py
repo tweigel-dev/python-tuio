@@ -72,6 +72,19 @@ class TuioServer(TuioDispatcher, UDPClient):
         self._periodic_messages : bool = False
         self._intervall : int = 1000
 
+    @staticmethod
+    def _build_alive(address, profile_list):
+        """
+        builds a OSC which implements a alive message of TUIO
+        returns the message
+        """
+        builder = OscMessageBuilder(address=address)
+        builder.add_arg("alive")
+        for profile in profile_list:
+            builder.add_arg(profile.session_id) ## add id of cursors
+
+        alive_msg = builder.build()
+        return alive_msg
     def send_bundle(self):
         """Build :class:`OscMessage` from arguments and send to server
 
@@ -83,29 +96,13 @@ class TuioServer(TuioDispatcher, UDPClient):
         bundle_builder = OscBundleBuilder(0)
 
         # build alive message
+        if len(self.cursors) != 0:
+            bundle_builder.add_content(TuioServer._build_alive(TUIO_CURSOR,self.cursors))
+        if len(self.blobs) != 0:
+            bundle_builder.add_content(TuioServer._build_alive(TUIO_BLOB,self.blobs))
+        if len(self.objects) != 0:
+            bundle_builder.add_content(TuioServer._build_alive(TUIO_OBJECT,self.objects))
 
-        builder = OscMessageBuilder(address=TUIO_CURSOR)
-
-        builder.add_arg("alive")
-        for cursor in self.cursors:
-            builder.add_arg(cursor.session_id) ## add id of cursors
-
-        alive_msg = builder.build()
-        bundle_builder.add_content(alive_msg)
-
-        builder = OscMessageBuilder(address=TUIO_BLOB)
-        for blob in self.blobs:
-            builder.add_arg(blob.session_id) ## add id of blobs
-
-        alive_msg = builder.build()
-        bundle_builder.add_content(alive_msg)
-
-        builder = OscMessageBuilder(address=TUIO_OBJECT)
-        for o in self.objects:
-            builder.add_arg(o.session_id) ## add id of objects
-
-        alive_msg = builder.build()
-        bundle_builder.add_content(alive_msg)
 
         # set message of cursor
         for cursor in self.cursors:
