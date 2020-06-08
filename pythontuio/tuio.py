@@ -72,9 +72,10 @@ class TuioServer(TuioDispatcher, UDPClient):
         self._periodic_messages : bool = False
         self._intervall : int = 1000
 
+    @staticmethod
     def _build_alive(address, profile_list):
         """
-        builds a OSC which implements a alive message of TUIO  
+        builds a OSC which implements a alive message of TUIO
         returns the message
         """
         builder = OscMessageBuilder(address=address)
