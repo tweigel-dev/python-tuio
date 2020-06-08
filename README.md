@@ -10,20 +10,18 @@ http://opensoundcontrol.org/spec-1_0
 and 
 https://python-osc.readthedocs.io/en/latest/
 
-## Notes
-
-Currently only the Server(Tracker) is implemented. The Client will follow.
-[GitHub]( https://github.com/tweigel-dev/python-tuio)
 
 #### API example of C++ 
 https://www.tuio.org/?cpp
 ## Installation
 
     pip3 install python-tuio
+## Note
+Listener is implemented very minimalistic. More to be continue. Feel free to contribute.
 
 ## Usage
-### Cursor example
-    
+### Server example with Cursor
+``` python
     from pythontuio import TuioClient
     from pythontuio import Cursor
 
@@ -42,6 +40,47 @@ https://www.tuio.org/?cpp
         client.send_bundle()
         time.sleep(0.1)
 
+```
+### Client example with class and extends
+```python
+    from pythontuio import TuioServer
+    from pythontuio import Cursor
+    from pythontuio import TuioListener
+    from threading import Thread
+
+    class MyListener(TuioListener):
+        def add_tuio_cursor(self, cursor: Cursor):
+            print("detect a new Cursor")
+        (...)
+
+
+    client = TuioClient(("localhost",3333))
+    t = Thread(target=client.start)
+    listener = MyListener()
+    client.add_listener(listener)
+
+    t.start()
+```
+### Client example with lamda
+``` python
+    from pythontuio import TuioServer
+    from pythontuio import Cursor
+    from pythontuio import TuioListener
+    from threading import Thread
+
+    def _add_tuio_cursor(self, cursor: Cursor):
+        print("detect a new Cursor")
+    (...)
+
+
+    client = TuioClient(("localhost",3333))
+    t = Thread(target=client.start)
+    listener = TuioListener()
+    listener.add_tuio_cursor = _add_tuio_cursor
+    client.add_listener(listener)
+
+    t.start()
+```
 ## Contribution
 Feel free to contribute inputs. Just start a MR with your changes.
 
