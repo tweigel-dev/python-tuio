@@ -9,7 +9,7 @@ from pythontuio.tuio_profiles import Cursor, Blob, Object
 from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 from pythontuio.const import TUIO_END,TUIO_ALIVE,TUIO_SET, TUIO_SOURCE
-
+from typing import List
 
 
 # pylint: disable=unnecessary-pass
@@ -59,14 +59,18 @@ class TuioDispatcher(Dispatcher):
     """
     def __init__(self):
         super(TuioDispatcher, self).__init__()
-        self.cursors : list = []
-        self.objects : list = []
-        self.blobs   : list = []
+        self.cursors : List(Cursor) = []
+        self.objects : List(Object) = []
+        self.blobs   : List(Blob) = []
         self._listener : list = []
         self.map(f"{TUIO_CURSOR}*", self._cursor_handler)
         self.map(f"{TUIO_OBJECT}*", self._object_handler)
         self.map(f"{TUIO_BLOB}*", self._blob_handler)
         self.set_default_handler(self._default_handler)
+
+        self._to_delete = []
+        self._to_add    = []
+        self._to_update = []
 
     def _cursor_handler(self, address, *args):
         """
@@ -75,11 +79,13 @@ class TuioDispatcher(Dispatcher):
         if len(args) == 0 :
             raise Exception("TUIO message is Broken. No TUIO type specified")
         ttype = args[0]
-        args = args[1:]
-        print(f"{address}:{ttype} {args}")
-        if ttype == TUIO_ALIVE :
+        args = list(args[1:])
+        if ttype == TUIO_SOURCE:
+            pass
+            #print(f"Message by {args} reveiced")
+        elif ttype == TUIO_ALIVE :
             cursors = self.cursors.copy()
-            self.cursors = _sort_matchs(cursors,args,Cursor)
+            self.cursors = self._sort_matchs(cursors, args, Cursor)
 
         elif ttype == TUIO_SET:
             for cursor in self.cursors:
@@ -88,15 +94,13 @@ class TuioDispatcher(Dispatcher):
                 cursor.position = (args[1], args[2])
                 cursor.velocity = (args[3], args[4])
                 cursor.motion_acceleration = args[5]
-                # call add cursor event
-                for listener in self._listener:
-                    listener.add_tuio_cursor(cursor)
 
 
         elif ttype == TUIO_END:
-            return # nothing to happend here
-        elif ttype == TUIO_SOURCE:
-            print(f"Message by {args} reveiced")
+            self._call_listener()
+            print(f"Bundle recived with {address}:{ttype} {args}")
+
+
         else:
             raise Exception("Broken TUIO Package")
 
@@ -108,12 +112,13 @@ class TuioDispatcher(Dispatcher):
         if len(args) == 0 :
             raise Exception("TUIO message is Broken. No TUIO type specified")
         ttype = args[0]
-        args = args[1:]
-        print(f"{address}:{ttype} {args}")
-        print("ttype !!!!!!!!!!!!!!!!!!!!!{ttype}")
-        if ttype == TUIO_ALIVE :
+        args = list(args[1:])
+        if ttype == TUIO_SOURCE:
+            #print(f"Message by {args} reveiced")
+            pass
+        elif ttype == TUIO_ALIVE :
             objects = self.objects.copy()
-            self.cursors = _sort_matchs(objects,args,Object)
+            self.objects = self._sort_matchs(objects, args, Object)
 
         elif ttype == TUIO_SET:
             for obj in self.objects:
@@ -127,12 +132,10 @@ class TuioDispatcher(Dispatcher):
                 obj.motion_acceleration    = args[8]                # m
                 obj.rotation_acceleration  = args[9]                # r
 
-                 # call add object event
-                map(lambda x, obj=obj: x.add_tuio_object(obj),self._listener)
+        
         elif ttype == TUIO_END:
-            return # nothing to happend here
-        elif ttype == TUIO_SOURCE:
-            print(f"Message by {args} reveiced")
+            self._call_listener()
+            print(f"Bundle recived with {address}:{ttype} {args}")
         else:
             raise Exception("Broken TUIO Package")
 
@@ -140,14 +143,16 @@ class TuioDispatcher(Dispatcher):
         """
         callback to convert OSC message into TUIO Blob
          """
+
         if len(args) == 0 :
             raise Exception("TUIO message is Broken. No TUIO type specified")
         ttype = args[0]
-        args = args[1:]
-        print(f"{address}:{ttype} {args}")
-        if ttype == TUIO_ALIVE :
+        args = list(args[1:])
+        if ttype == TUIO_SOURCE:
+            pass
+        elif ttype == TUIO_ALIVE :
             blobs = self.blobs.copy()
-            self.blobs = _sort_matchs(blobs,args,Blob)
+            self.blobs = self._sort_matchs(blobs, args, Blob)
 
         elif ttype == TUIO_SET:
             for blob in self.blobs:
@@ -161,15 +166,46 @@ class TuioDispatcher(Dispatcher):
                 blob.velocity_rotation      = args[9]                # A
                 blob.motion_acceleration    = args[10]               # m
                 blob.rotation_acceleration  = args[11]               # r
-                # call add blob event
-                map(lambda x, blob=blob: x.add_tuio_blob(blob),self._listener)
+               
 
         elif ttype == TUIO_END:
-            return # nothing to happend here
-        elif ttype == TUIO_SOURCE:
-            print(f"Message by {args} reveiced")
+            self._call_listener()
+            print(f"Bundle recived with {address}:{ttype} {args}")
         else:
             raise Exception("Broken TUIO Package")
+    
+    def _call_listener(self):
+        for listner in self._listener:
+            for profile in self._to_add:
+                if  isinstance(profile, Cursor) :
+                    listner.add_tuio_cursor(profile)
+                elif isinstance(profile, Object) :
+                    listner.add_tuio_object(profile)
+                elif isinstance(profile, Blob) :
+                    listner.add_tuio_blob(profile)
+
+            for profile in self._to_update:
+                if  isinstance(profile, Cursor) :
+                    listner.update_tuio_cursor(profile)
+                elif isinstance(profile, Object) :
+                    listner.update_tuio_object(profile)
+                elif isinstance(profile, Blob) :
+                    listner.update_tuio_blob(profile)
+
+
+            for profile in self._to_delete:
+                if  isinstance(profile, Cursor) :
+                    listner.remove_tuio_cursor(profile)
+                elif isinstance(profile, Object) :
+                    listner.remove_tuio_object(profile)
+                elif isinstance(profile, Blob) :
+                    listner.remove_tuio_blob(profile)
+
+            listner.refresh(0) # TODO implement time conzept
+            self._to_add    = []
+            self._to_update = []
+            self._to_delete = []
+
 
     def add_listener(self, listener :TuioListener):
         """
@@ -188,18 +224,31 @@ class TuioDispatcher(Dispatcher):
         Removes all provided TuioListeners from the list of registered TUIO event listeners
         """
         self._listener.clear()
-def _sort_matchs(profiles, session_ids, Profile_type):
-    new_profiles = []
-    for session_id in session_ids:
-        profil_match = None
-        # search for cursor
-        for profile in profiles:
-            if profile.session_id == session_id:
-                profil_match = profile
-        # if match found copy it
-        if profil_match is not None:
-            new_profiles.append(profil_match)
-        # else add new one
-        else :
-            new_profiles.append(Profile_type(session_id))
-    return new_profiles
+
+    def _sort_matchs(self, profile_list, session_ids, Profile_type):
+        """
+        sort incoming session_ids into the lists and fill the listner stacks
+        """
+        new_profiles = []
+        rest_profiles = profile_list.copy()
+        rest_sessions = session_ids.copy()
+
+        for session_id in session_ids:
+            # search for profile
+            for profile in profile_list:
+            
+                if profile.session_id == session_id:
+                    new_profiles.append(profile)
+                    self._to_update.append(profile)# add into event list update
+                    rest_profiles.remove(profile)
+                    rest_sessions.remove(session_id)
+           
+        for profile in rest_profiles:
+            self._to_delete.append(profile)# add into event list delete
+
+        for session_id in rest_sessions:
+            profile = Profile_type(session_id)
+            new_profiles.append(profile)
+            self._to_add.append(profile)# add into event list add
+
+        return new_profiles
