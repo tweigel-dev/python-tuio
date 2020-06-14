@@ -16,8 +16,6 @@ https://www.tuio.org/?cpp
 ## Installation
 
     pip3 install python-tuio
-## Note
-Listener is implemented very minimalistic. More to be continue. Feel free to contribute.
 
 ## Usage
 ### Server example with Cursor
