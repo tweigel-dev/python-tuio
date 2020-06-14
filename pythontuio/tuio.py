@@ -32,7 +32,7 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
     The TuioClient instance then generates TUIO events which are broadcasted to all
     registered classes that implement the TuioListener interface.
     """
-    def __init__(self, server_address: Tuple[str, int]):
+    def __init__(self, server_address: Tuple[str, int]): # pylint: disable=W0231
         TuioDispatcher.__init__(self)
         self._dispatcher = self
         self.connected = False

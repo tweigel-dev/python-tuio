@@ -2,14 +2,14 @@
 classes to handle incoming osc messages
 """
 from abc import ABC # abstract base class of python
-
+from typing import List
 from pythonosc.dispatcher import Dispatcher
 
 from pythontuio.tuio_profiles import Cursor, Blob, Object
 from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 from pythontuio.const import TUIO_END,TUIO_ALIVE,TUIO_SET, TUIO_SOURCE
-from typing import List
+
 
 
 # pylint: disable=unnecessary-pass
@@ -132,7 +132,7 @@ class TuioDispatcher(Dispatcher):
                 obj.motion_acceleration    = args[8]                # m
                 obj.rotation_acceleration  = args[9]                # r
 
-        
+
         elif ttype == TUIO_END:
             self._call_listener()
             print(f"Bundle recived with {address}:{ttype} {args}")
@@ -166,15 +166,15 @@ class TuioDispatcher(Dispatcher):
                 blob.velocity_rotation      = args[9]                # A
                 blob.motion_acceleration    = args[10]               # m
                 blob.rotation_acceleration  = args[11]               # r
-               
+
 
         elif ttype == TUIO_END:
             self._call_listener()
             print(f"Bundle recived with {address}:{ttype} {args}")
         else:
             raise Exception("Broken TUIO Package")
-    
-    def _call_listener(self):
+
+    def _call_listener(self):    # pylint: disable=R0912 
         for listner in self._listener:
             for profile in self._to_add:
                 if  isinstance(profile, Cursor) :
@@ -201,7 +201,7 @@ class TuioDispatcher(Dispatcher):
                 elif isinstance(profile, Blob) :
                     listner.remove_tuio_blob(profile)
 
-            listner.refresh(0) # TODO implement time conzept
+            listner.refresh(0) # TODO implement time conzept pylint
             self._to_add    = []
             self._to_update = []
             self._to_delete = []
@@ -236,13 +236,13 @@ class TuioDispatcher(Dispatcher):
         for session_id in session_ids:
             # search for profile
             for profile in profile_list:
-            
+
                 if profile.session_id == session_id:
                     new_profiles.append(profile)
                     self._to_update.append(profile)# add into event list update
                     rest_profiles.remove(profile)
                     rest_sessions.remove(session_id)
-           
+
         for profile in rest_profiles:
             self._to_delete.append(profile)# add into event list delete
 
