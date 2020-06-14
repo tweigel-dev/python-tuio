@@ -24,7 +24,6 @@ from pythontuio.dispatcher import TuioDispatcher
 
 
 
-
 class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-many-ancestors
     """
     The TuioClient class is the central TUIO protocol decoder component.
@@ -33,25 +32,17 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
     The TuioClient instance then generates TUIO events which are broadcasted to all
     registered classes that implement the TuioListener interface.
     """
-    def __init__(self, server_address: Tuple[str, int]):
+    def __init__(self, server_address: Tuple[str, int]): # pylint: disable=W0231
         TuioDispatcher.__init__(self)
         self._dispatcher = self
-        BlockingOSCUDPServer.__init__(self,server_address, self)
         self.connected = False
-
-
-    def server_bind(self):
-        print(f"starting tuio-client at port {self.server_address[1]}")
-        super().server_bind()
-        self.handle_request()
-
-    def server_close(self):
-        print("stopping tuio-client")
-        super().server_close()
+        self.server_address = server_address
     def start(self):
         """
         start serving for UDP OSC packages
         """
+        print(f"starting tuio-client at port {self.server_address[1]}")
+        BlockingOSCUDPServer.__init__(self,self.server_address, self)
         self.serve_forever()
 
 class TuioServer(TuioDispatcher, UDPClient):

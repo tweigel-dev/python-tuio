@@ -92,8 +92,12 @@ def test_dispatcher_listener():
         def add_tuio_cursor(self, cursor):
             print("detect a new Cursor")
             assert type(2) == type(cursor.session_id)   # look if sessionid is a number
-
-
+        def remove_tuio_cursor(self, cursor):
+            print("Cursor disapered")
+            assert type(2) == type(cursor.session_id)   # look if sessionid is a number
+        def update_tuio_cursor(self, cursor):
+            print("recognize a Cursor")
+            assert type(2) == type(cursor.session_id)   # look if sessionid is a number
     listener = MyListener()
     client.add_listener(listener)
 
