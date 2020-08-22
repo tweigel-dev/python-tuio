@@ -20,28 +20,28 @@ https://www.tuio.org/?cpp
 ## Usage
 ### Server example with Cursor
 ``` python
-    from pythontuio import TuioClient
+    from pythontuio import TuioServer
     from pythontuio import Cursor
 
-
+    server = TuioServer()
     cursor = Cursor(123) # sets session_id to 123
 
     cursor.velocity             = (0.2,0.1)
     cursor.motion_acceleration  = 0.1 
 
-    client.cursors.append(cursor)
+    server.cursors.append(cursor)
     i = 0
     while i < 10:
         i+=1
         cursor.position = (0.5+0.01*i,0.5)
 
-        client.send_bundle()
+        server.send_bundle()
         time.sleep(0.1)
 
 ```
 ### Client example with class and extends
 ```python
-    from pythontuio import TuioServer
+    from pythontuio import TuioClient
     from pythontuio import Cursor
     from pythontuio import TuioListener
     from threading import Thread
@@ -61,7 +61,7 @@ https://www.tuio.org/?cpp
 ```
 ### Client example with lamda
 ``` python
-    from pythontuio import TuioServer
+    from pythontuio import TuioClient
     from pythontuio import Cursor
     from pythontuio import TuioListener
     from threading import Thread
