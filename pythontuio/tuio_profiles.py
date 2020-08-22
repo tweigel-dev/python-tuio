@@ -33,7 +33,7 @@ class Object(Profile):
     TUIO Object 2D Interactive Surface
     """
     def __init__(self, session_id):
-        super(Object, self).__init__(session_id)
+        super().__init__(session_id)
         self.class_id               = -1            # i
         self.position               = (0, 0)   # x,y
         self.angle                  = 0             # a
@@ -70,7 +70,7 @@ class Cursor(Profile):
     TUIO Cursor 2D Interactive Surface
     """
     def __init__(self, session_id):
-        super(Cursor, self).__init__(session_id)
+        super().__init__(session_id)
         self.position               = (0, 0)   # x,y
         self.velocity               = (0, 0)   # X,Y
         self.motion_acceleration    = 0             # m
@@ -101,7 +101,7 @@ class Blob(Profile):
     TUIO Blob 2D Interactive Surface
     """
     def __init__(self, session_id):
-        super(Blob, self).__init__(session_id)
+        super().__init__(session_id)
         self.position               = (0, 0)        # x,y
         self.angle                  =  5            # a
         self.dimension              = (.1, .1)      # w, h

@@ -58,7 +58,7 @@ class TuioDispatcher(Dispatcher):
     class to hold Eventlistener and the TuioCursors, TuioBlobs, and TuioObjects
     """
     def __init__(self):
-        super(TuioDispatcher, self).__init__()
+        super().__init__()
         self.cursors : List(Cursor) = []
         self.objects : List(Object) = []
         self.blobs   : List(Blob) = []
