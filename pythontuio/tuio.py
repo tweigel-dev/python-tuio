@@ -87,12 +87,12 @@ class TuioServer(TuioDispatcher, UDPClient):
         bundle_builder = OscBundleBuilder(0)
 
         # build alive message
-        if len(self.cursors) != 0:
-            bundle_builder.add_content(TuioServer._build_alive(TUIO_CURSOR,self.cursors))
-        if len(self.blobs) != 0:
-            bundle_builder.add_content(TuioServer._build_alive(TUIO_BLOB,self.blobs))
-        if len(self.objects) != 0:
-            bundle_builder.add_content(TuioServer._build_alive(TUIO_OBJECT,self.objects))
+        
+        bundle_builder.add_content(TuioServer._build_alive(TUIO_CURSOR,self.cursors))
+    
+        bundle_builder.add_content(TuioServer._build_alive(TUIO_BLOB,self.blobs))
+    
+        bundle_builder.add_content(TuioServer._build_alive(TUIO_OBJECT,self.objects))
 
 
         # set message of cursor
