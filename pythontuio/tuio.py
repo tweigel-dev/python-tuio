@@ -87,11 +87,11 @@ class TuioServer(TuioDispatcher, UDPClient):
         bundle_builder = OscBundleBuilder(0)
 
         # build alive message
-        
+
         bundle_builder.add_content(TuioServer._build_alive(TUIO_CURSOR,self.cursors))
-    
+
         bundle_builder.add_content(TuioServer._build_alive(TUIO_BLOB,self.blobs))
-    
+
         bundle_builder.add_content(TuioServer._build_alive(TUIO_OBJECT,self.objects))
 
 
