@@ -59,6 +59,7 @@ class TuioDispatcher(Dispatcher):
     """
     def __init__(self):
         super().__init__()
+        self.fseq = 0
         self.cursors : List(Cursor) = []
         self.objects : List(Object) = []
         self.blobs   : List(Blob) = []
@@ -97,6 +98,7 @@ class TuioDispatcher(Dispatcher):
 
 
         elif ttype == TUIO_END:
+            self.fseq = args[0]
             self._call_listener()
             print(f"Bundle recived with {address}:{ttype} {args}")
 
@@ -174,7 +176,7 @@ class TuioDispatcher(Dispatcher):
         else:
             raise Exception("Broken TUIO Package")
 
-    def _call_listener(self):    # pylint: disable=R0912 
+    def _call_listener(self):    # pylint: disable=R0912
         for listner in self._listener:
             for profile in self._to_add:
                 if  isinstance(profile, Cursor) :
@@ -201,7 +203,7 @@ class TuioDispatcher(Dispatcher):
                 elif isinstance(profile, Blob) :
                     listner.remove_tuio_blob(profile)
 
-            listner.refresh(0) # TODO implement time conzept pylint
+            listner.refresh(self.fseq)
             self._to_add    = []
             self._to_update = []
             self._to_delete = []
