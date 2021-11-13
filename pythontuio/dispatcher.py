@@ -131,13 +131,12 @@ class TuioDispatcher(Dispatcher):
             cursors = self.cursors.copy()
             self.cursors = self._sort_matchs(cursors, args, Cursor)
 
-        for cursor in self.cursors:
-            if cursor.session_id != args[0]:
-                continue
-            cursor.position = (args[1], args[2])
-            cursor.velocity = (args[3], args[4])
-            cursor.motion_acceleration = args[5]
-
+            for cursor in self.cursors:
+                if cursor.session_id != args[0]:
+                    continue
+                cursor.position = (args[1], args[2])
+                cursor.velocity = (args[3], args[4])
+                cursor.motion_acceleration = args[5]
 
         elif ttype == TUIO_END:
             self.fseq = args[0]
