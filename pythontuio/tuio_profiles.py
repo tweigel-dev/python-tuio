@@ -16,7 +16,7 @@ It supports only 2D Object|Blob|Cursor
 from pythonosc.osc_message_builder import OscMessageBuilder
 from pythonosc.osc_message import OscMessage
 
-from pythontuio.const import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
+from pythontuio.const import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT, PHARUS_PATH, PHARUS_FRAME
 
 class Profile:
     """
