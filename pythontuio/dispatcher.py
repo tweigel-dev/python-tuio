@@ -79,11 +79,10 @@ class TuioDispatcher(Dispatcher):
     def _pharus_path_handler(self, address, *args):
         """
         callback to convert OSC message into TUIO Cursor
-        """
-
-        self.msg_buffer.append(args)
+        """        
         if len(args) == 0 :
             raise Exception("TUIO message is Broken. No TUIO type specified")
+
         self.msg_buffer.append(args)
 
     def handle_messages(self):
