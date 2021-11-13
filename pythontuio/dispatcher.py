@@ -65,9 +65,9 @@ class TuioDispatcher(Dispatcher):
         self.objects : List(Object) = []
         self.blobs   : List(Blob) = []
         self._listener : list = []
-        self.map(f"{TUIO_CURSOR}*", self._cursor_handler)
-        self.map(f"{TUIO_OBJECT}*", self._object_handler)
-        self.map(f"{TUIO_BLOB}*", self._blob_handler)
+        #self.map(f"{TUIO_CURSOR}*", self._cursor_handler)
+        #self.map(f"{TUIO_OBJECT}*", self._object_handler)
+        #self.map(f"{TUIO_BLOB}*", self._blob_handler)
         self.map(f"{PHARUS_PATH}*", self._pharus_path_handler)
         self.map(f"{PHARUS_FRAME}*", self._pharus_frame_handler)
         self.set_default_handler(self._default_handler)
