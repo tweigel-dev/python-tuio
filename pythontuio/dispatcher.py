@@ -81,7 +81,7 @@ class TuioDispatcher(Dispatcher):
         callback to convert OSC message into TUIO Cursor
         """
 
-        msg_buffer.append(args)
+        self.msg_buffer.append(args)
         if len(args) == 0 :
             raise Exception("TUIO message is Broken. No TUIO type specified")
         self.msg_buffer.append(args)
