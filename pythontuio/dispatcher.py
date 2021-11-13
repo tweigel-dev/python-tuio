@@ -6,7 +6,7 @@ from typing import List
 from pythonosc.dispatcher import Dispatcher
 
 from pythontuio.tuio_profiles import Cursor, Blob, Object
-from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
+from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT, PHARUS_PATH, PHARUS_FRAME
 
 from pythontuio.const import TUIO_END,TUIO_ALIVE,TUIO_SET, TUIO_SOURCE
 
@@ -61,24 +61,67 @@ class TuioDispatcher(Dispatcher):
         super().__init__()
         self.fseq = 0
         self.cursors : List(Cursor) = []
+        self.msg_buffer = []
         self.objects : List(Object) = []
         self.blobs   : List(Blob) = []
         self._listener : list = []
         self.map(f"{TUIO_CURSOR}*", self._cursor_handler)
         self.map(f"{TUIO_OBJECT}*", self._object_handler)
         self.map(f"{TUIO_BLOB}*", self._blob_handler)
+        self.map(f"{PHARUS_PATH}*", self._pharus_path_handler)
+        self.map(f"{PHARUS_FRAME}*", self._pharus_frame_handler)
         self.set_default_handler(self._default_handler)
 
         self._to_delete = []
         self._to_add    = []
         self._to_update = []
 
-    def _cursor_handler(self, address, *args):
+    def _pharus_path_handler(self, address, *args):
+        """
+        callback to convert OSC message into TUIO Cursor
+        """
+
+        msg_buffer.append(args)
+        if len(args) == 0 :
+            raise Exception("TUIO message is Broken. No TUIO type specified")
+        self.msg_buffer.append(args)
+
+    def handle_messages(self):
+        cursor_ids = []
+        for msg in self.msg_buffer:
+            cursor_ids.append(msg[0])
+        cursors = self.cursors.copy()
+        self.cursors = self._sort_matchs(cursors, cursor_ids, Cursor)
+
+        for msg in self.msg_buffer:
+            for cursor in self.cursors:
+                if cursor.session_id != msg[0]:
+                    continue
+                cursor.position = (msg[1], msg[2])
+                cursor.velocity = (msg[3], msg[4])
+                cursor.motion_acceleration = msg[5]
+
+
+    def _pharus_frame_handler(self, address, *args):
         """
         callback to convert OSC message into TUIO Cursor
         """
         if len(args) == 0 :
             raise Exception("TUIO message is Broken. No TUIO type specified")
+        self.fseq = args[0]
+        if len(self.msg_buffer) == 0:
+            return
+
+        self.handle_messages()
+        self.msg_buffer.clear()
+        self._call_listener()
+
+    def _cursor_handler(self, address, *args):
+        """
+        callback to convert OSC message into TUIO Cursor
+        """
+        if len(args) == 0 :
+            raise Exception("OSC message is Broken. No content")
         ttype = args[0]
         args = list(args[1:])
         if ttype == TUIO_SOURCE:
@@ -88,13 +131,12 @@ class TuioDispatcher(Dispatcher):
             cursors = self.cursors.copy()
             self.cursors = self._sort_matchs(cursors, args, Cursor)
 
-        elif ttype == TUIO_SET:
-            for cursor in self.cursors:
-                if cursor.session_id != args[0]:
-                    continue
-                cursor.position = (args[1], args[2])
-                cursor.velocity = (args[3], args[4])
-                cursor.motion_acceleration = args[5]
+        for cursor in self.cursors:
+            if cursor.session_id != args[0]:
+                continue
+            cursor.position = (args[1], args[2])
+            cursor.velocity = (args[3], args[4])
+            cursor.motion_acceleration = args[5]
 
 
         elif ttype == TUIO_END:
