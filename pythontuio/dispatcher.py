@@ -100,7 +100,7 @@ class TuioDispatcher(Dispatcher):
         elif ttype == TUIO_END:
             self.fseq = args[0]
             self._call_listener()
-            print(f"Bundle recived with {address}:{ttype} {args}")
+            #print(f"Bundle recived with {address}:{ttype} {args}")
 
 
         else:
@@ -137,7 +137,7 @@ class TuioDispatcher(Dispatcher):
 
         elif ttype == TUIO_END:
             self._call_listener()
-            print(f"Bundle recived with {address}:{ttype} {args}")
+            #print(f"Bundle recived with {address}:{ttype} {args}")
         else:
             raise Exception("Broken TUIO Package")
 
@@ -172,7 +172,7 @@ class TuioDispatcher(Dispatcher):
 
         elif ttype == TUIO_END:
             self._call_listener()
-            print(f"Bundle recived with {address}:{ttype} {args}")
+            #print(f"Bundle recived with {address}:{ttype} {args}")
         else:
             raise Exception("Broken TUIO Package")
 
