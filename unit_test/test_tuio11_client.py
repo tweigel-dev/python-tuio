@@ -2,6 +2,10 @@ import contextlib
 import io
 import unittest
 
+from pythonosc.osc_bundle_builder import OscBundleBuilder
+from pythonosc.osc_message_builder import OscMessageBuilder
+
+from pythontuio.const import TUIO_CURSOR
 from pythontuio.dispatcher import TuioDispatcher, TuioListener
 
 
@@ -43,6 +47,29 @@ class RecordingListener(TuioListener):
 
     def refresh(self, time):
         self.events.append(("refresh", time))
+
+
+def osc_message(address, *args):
+    builder = OscMessageBuilder(address)
+    for arg in args:
+        builder.add_arg(arg)
+    return builder.build()
+
+
+def dispatch_bundle(dispatcher, messages):
+    bundle_builder = OscBundleBuilder(0)
+    for message in messages:
+        bundle_builder.add_content(message)
+    dispatcher.call_handlers_for_packet(bundle_builder.build().dgram, ("127.0.0.1", 3333))
+
+
+def sourced_cursor_frame(dispatcher, source, session_id, xpos, fseq, alive_ids=None):
+    if alive_ids is None:
+        alive_ids = [session_id]
+    dispatcher._cursor_handler("/tuio/2Dcur", "source", source)
+    dispatcher._cursor_handler("/tuio/2Dcur", "alive", *alive_ids)
+    dispatcher._cursor_handler("/tuio/2Dcur", "set", session_id, xpos, 0.5, 0.0, 0.0, 0.0)
+    dispatcher._cursor_handler("/tuio/2Dcur", "fseq", fseq)
 
 
 def cursor_frame(dispatcher, session_id=1, values=CURSOR_SET[1:], fseq=1, alive_ids=None):
@@ -108,6 +135,23 @@ class Tuio11ClientDispatchTest(unittest.TestCase):
         self.assertEqual(cursor.velocity, (0.3, 0.4))
         self.assertEqual(cursor.motion_acceleration, 0.5)
         self.assertEqual(listener.events, [("add_cur", 1), ("refresh", 0)])
+
+    def test_dispatched_osc_bundle_decodes_source_and_cursor_state(self):
+        dispatcher = TuioDispatcher()
+
+        dispatch_bundle(dispatcher, [
+            osc_message(TUIO_CURSOR, "source", "cam1@10.0.0.1"),
+            osc_message(TUIO_CURSOR, "alive", 1),
+            osc_message(TUIO_CURSOR, "set", 1, 0.1, 0.2, 0.0, 0.0, 0.0),
+            osc_message(TUIO_CURSOR, "fseq", 1),
+        ])
+
+        self.assertEqual(len(dispatcher.cursors), 1)
+        cursor = dispatcher.cursors[0]
+        self.assertAlmostEqual(cursor.position[0], 0.1)
+        self.assertAlmostEqual(cursor.position[1], 0.2)
+        self.assertEqual(cursor.source_name, "cam1")
+        self.assertEqual(cursor.source_address, "10.0.0.1")
 
     def test_object_and_blob_fields_are_decoded_exactly(self):
         dispatcher = TuioDispatcher()
@@ -201,6 +245,70 @@ class Tuio11ClientDispatchTest(unittest.TestCase):
         self.assertEqual(listener.events, [("update_blob", 3), ("refresh", 0)])
         self.assertEqual(dispatcher.blobs[0].velocity_rotation, 0.25)
         self.assertEqual(dispatcher.blobs[0].rotation_acceleration, 0.125)
+
+    def test_sources_multiplex_identical_session_ids_independently(self):
+        dispatcher = TuioDispatcher()
+
+        sourced_cursor_frame(dispatcher, "cam1@10.0.0.1", 5, 0.1, 1)
+        sourced_cursor_frame(dispatcher, "cam2@10.0.0.2", 5, 0.9, 2)
+
+        self.assertEqual(len(dispatcher.cursors), 2)
+        first = dispatcher.get_tuio_cursor(5, source_id=0)
+        second = dispatcher.get_tuio_cursor(5, source_id=1)
+        self.assertIsNot(first, second)
+        self.assertEqual(first.position, (0.1, 0.5))
+        self.assertEqual(second.position, (0.9, 0.5))
+        self.assertEqual(first.source_name, "cam1")
+        self.assertEqual(first.source_address, "10.0.0.1")
+        self.assertEqual(second.source_name, "cam2")
+        self.assertEqual(second.source_address, "10.0.0.2")
+
+        sourced_cursor_frame(dispatcher, "cam1@10.0.0.1", 5, 0.2, 2)
+        self.assertEqual(first.position, (0.2, 0.5))
+        self.assertEqual(second.position, (0.9, 0.5))
+
+        dispatcher._cursor_handler("/tuio/2Dcur", "source", "cam1@10.0.0.1")
+        dispatcher._cursor_handler("/tuio/2Dcur", "alive")
+        dispatcher._cursor_handler("/tuio/2Dcur", "fseq", 3)
+        self.assertEqual(dispatcher.cursors, [second])
+
+    def test_bare_source_name_uses_localhost_and_query_helpers_filter_sources(self):
+        dispatcher = TuioDispatcher()
+
+        sourced_cursor_frame(dispatcher, "localapp", 9, 0.5, 3)
+
+        cursor = dispatcher.get_tuio_cursor(9)
+        self.assertEqual(cursor.source_id, 0)
+        self.assertEqual(cursor.source_name, "localapp")
+        self.assertEqual(cursor.source_address, "localhost")
+        self.assertEqual(dispatcher.get_tuio_cursors(), [cursor])
+        self.assertEqual(dispatcher.get_tuio_cursors(source_id=0), [cursor])
+        self.assertEqual(dispatcher.get_tuio_cursors(source_id=1), [])
+        self.assertIs(dispatcher.get_tuio_cursor(9, source_id=0), cursor)
+        self.assertIsNone(dispatcher.get_tuio_cursor(9, source_id=1))
+
+    def test_frame_sequences_are_independent_per_source(self):
+        dispatcher = TuioDispatcher()
+
+        sourced_cursor_frame(dispatcher, "cam1", 1, 0.1, 10)
+        sourced_cursor_frame(dispatcher, "cam2", 2, 0.2, 1)
+
+        self.assertEqual(len(dispatcher.cursors), 2)
+        self.assertEqual(dispatcher.get_tuio_cursor(1, source_id=0).position, (0.1, 0.5))
+        self.assertEqual(dispatcher.get_tuio_cursor(2, source_id=1).position, (0.2, 0.5))
+
+    def test_bundle_without_source_returns_to_implicit_source(self):
+        dispatcher = TuioDispatcher()
+
+        sourced_cursor_frame(dispatcher, "cam1", 5, 0.1, 1)
+        cursor_frame(dispatcher, session_id=5, values=(0.9, 0.5, 0.0, 0.0, 0.0), fseq=1)
+
+        self.assertEqual(len(dispatcher.cursors), 2)
+        explicit = dispatcher.get_tuio_cursor(5, source_id=0)
+        implicit = [cursor for cursor in dispatcher.cursors if cursor.source_name == ""]
+        self.assertEqual(explicit.source_name, "cam1")
+        self.assertEqual(len(implicit), 1)
+        self.assertEqual(implicit[0].position, (0.9, 0.5))
 
     def test_split_packets_with_same_fseq_are_accepted(self):
         dispatcher = TuioDispatcher()

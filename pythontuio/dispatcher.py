@@ -82,6 +82,7 @@ class TuioDispatcher(Dispatcher):
         self._to_update = []
 
         self._current_source_key = None
+        self._sources = {}
         self._current_frames = {}
         self._frame_alive = {}
         self._frame_sets = {
@@ -116,6 +117,7 @@ class TuioDispatcher(Dispatcher):
         ttype = args[0]
         values = list(args[1:])
         if ttype == TUIO_SOURCE:
+            self._handle_source(values)
             return
         if ttype == TUIO_ALIVE:
             self._handle_alive(profile_type, values)
@@ -123,6 +125,29 @@ class TuioDispatcher(Dispatcher):
             self._handle_set(profile_type, values)
         elif ttype == TUIO_END:
             self._finish_frame(values)
+
+    def _handle_source(self, values):
+        """Select the source identity for subsequent messages in this bundle."""
+        if len(values) == 0 or type(values[0]) is not str:
+            return
+
+        source = values[0]
+        if source not in self._sources:
+            source_id = len(self._sources)
+            if "@" in source:
+                source_name, source_address = source.split("@", 1)
+                if not source_address:
+                    source_address = "localhost"
+            else:
+                source_name = source
+                source_address = "localhost"
+            self._sources[source] = (source_id, source_name, source_address)
+
+        self._current_source_key = source
+
+    def _reset_current_source(self):
+        """Return to the implicit local source after a concluded bundle."""
+        self._current_source_key = None
 
     def _handle_alive(self, profile_type, values):
         """Buffer a validated alive list for the current frame."""
@@ -220,11 +245,15 @@ class TuioDispatcher(Dispatcher):
         source_key = self._current_source_key
         if not self._accept_frame_sequence(source_key, frame_sequence):
             self._discard_pending_frame(source_key)
+            self._reset_current_source()
             return
 
-        for profile_type in _PROFILE_ORDER:
-            self._process_profile_frame(profile_type, source_key)
-        self._call_listener()
+        try:
+            for profile_type in _PROFILE_ORDER:
+                self._process_profile_frame(profile_type, source_key)
+            self._call_listener()
+        finally:
+            self._reset_current_source()
 
     def _accept_frame_sequence(self, source_key, frame_sequence):
         """Return whether a frame sequence is current, split, redundant, or wrapped."""
@@ -275,7 +304,7 @@ class TuioDispatcher(Dispatcher):
             profile = self._find_profile(active_profiles, source_key, session_id)
             if profile is None:
                 profile = self._new_profile(profile_type, session_id)
-                profile._tuio_source_key = source_key
+                self._set_profile_source(profile, source_key)
                 self._apply_profile_state(profile, state)
                 active_profiles.append(profile)
                 self._to_add.append(profile)
@@ -300,6 +329,17 @@ class TuioDispatcher(Dispatcher):
             return Object(session_id)
         return Blob(session_id)
 
+    def _set_profile_source(self, profile, source_key):
+        """Attach public and internal source metadata to a received profile."""
+        profile._tuio_source_key = source_key
+        if source_key is None:
+            profile.source_id = 0
+            profile.source_name = ""
+            profile.source_address = ""
+        else:
+            source = self._sources[source_key]
+            profile.source_id, profile.source_name, profile.source_address = source
+
     @staticmethod
     def _profile_source_key(profile):
         """Return the internal source key of an active profile."""
@@ -312,6 +352,47 @@ class TuioDispatcher(Dispatcher):
             if cls._profile_source_key(profile) == source_key and profile.session_id == session_id:
                 return profile
         return None
+
+    @staticmethod
+    def _filter_profiles(profiles, source_id):
+        """Return a shallow profile list optionally restricted to one source."""
+        if source_id is None:
+            return list(profiles)
+        return [profile for profile in profiles if profile.source_id == source_id]
+
+    @classmethod
+    def _find_public_profile(cls, profiles, session_id, source_id):
+        """Find one active profile by session ID and optional source ID."""
+        for profile in profiles:
+            if profile.session_id != session_id:
+                continue
+            if source_id is None or profile.source_id == source_id:
+                return profile
+        return None
+
+    def get_tuio_objects(self, source_id=None):
+        """Return a shallow copy of active objects, optionally for one source."""
+        return self._filter_profiles(self.objects, source_id)
+
+    def get_tuio_cursors(self, source_id=None):
+        """Return a shallow copy of active cursors, optionally for one source."""
+        return self._filter_profiles(self.cursors, source_id)
+
+    def get_tuio_blobs(self, source_id=None):
+        """Return a shallow copy of active blobs, optionally for one source."""
+        return self._filter_profiles(self.blobs, source_id)
+
+    def get_tuio_object(self, session_id, source_id=None):
+        """Return one active object by session ID and optional source ID."""
+        return self._find_public_profile(self.objects, session_id, source_id)
+
+    def get_tuio_cursor(self, session_id, source_id=None):
+        """Return one active cursor by session ID and optional source ID."""
+        return self._find_public_profile(self.cursors, session_id, source_id)
+
+    def get_tuio_blob(self, session_id, source_id=None):
+        """Return one active blob by session ID and optional source ID."""
+        return self._find_public_profile(self.blobs, session_id, source_id)
 
     def _call_listener(self):    # pylint: disable=R0912
         to_add = self._to_add

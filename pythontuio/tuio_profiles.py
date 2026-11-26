@@ -27,6 +27,10 @@ class Profile:
 
     def __init__(self, session_id):
         self.session_id = session_id
+        self.source_id = 0
+        self.source_name = ""
+        self.source_address = ""
+        self._tuio_source_key = None
 
 class Object(Profile):
     """
