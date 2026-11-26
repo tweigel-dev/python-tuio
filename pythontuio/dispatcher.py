@@ -57,8 +57,11 @@ class TuioListener(ABC):
         """Abstract function to add a behavior for tuio remove blob event"""
         pass
     def refresh(self, time):
-        """Abstract This callback method is invoked by the TuioClient
-        to mark the end of a received TUIO message bundle."""
+        """Abstract callback marking the end of a received TUIO frame.
+
+        The time argument is a monotonic floating-point time in seconds,
+        measured relative to dispatcher construction.
+        """
         pass
 # pylint: enable=unnecessary-pass
 

@@ -25,6 +25,7 @@ This update brings the Python server and client implementations closer to the TU
 - Reworked receive-side frame handling so `alive` and `set` messages are buffered and applied atomically when `fseq` completes a frame.
 - Fixed listener fanout so every registered listener receives the same add/update/remove events. Previously, event queues were cleared while dispatching to the first listener.
 - Removed noisy per-bundle debug printing.
+- Replaced the historical `refresh(0)` placeholder with a monotonic session-relative floating-point frame time in seconds. Packets sharing a frame sequence share the same frame time, and recent redundant frames reuse it.
 - Preserved object identity for continuing profiles while updating their attributes in place.
 - Eliminated spurious update events for unchanged contacts that merely remain present in `alive` lists.
 - Added exact field decoding for object, cursor, and blob profiles, including rotation-only blob updates.
@@ -62,7 +63,7 @@ This update brings the Python server and client implementations closer to the TU
 
 - TUIO is supported over UDP only; TCP and WebSocket transports are not implemented.
 - `TuioClient.start()` remains blocking and no high-level client stop lifecycle API was added.
-- `refresh` continues to receive the historical placeholder value `0` rather than a frame time object.
+- Frame times are monotonic session-relative seconds rather than wall-clock timestamps or a dedicated time object.
 - Local cursor/blob component IDs from the C++ reference client are not implemented.
 - Periodic server retransmission methods remain unimplemented.
 - The server does not automatically split very large frames across multiple UDP packets.

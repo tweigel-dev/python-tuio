@@ -142,6 +142,8 @@ Received `alive` and `set` messages are buffered and applied atomically when the
 - listener callbacks are delivered to every registered listener;
 - `refresh` marks the end of each accepted frame.
 
+The `refresh` callback receives a monotonic floating-point frame time in seconds, measured relative to dispatcher construction. Split or profile-specific packets sharing the same frame sequence number also share the same frame time. Redundant `fseq -1` packets reuse the current frame time when they arrive within 100 milliseconds of it. This value is intended for measuring relative timing and durations; it is not a wall-clock timestamp.
+
 Frame sequence handling follows the TUIO 1.1 reference behavior:
 
 - increasing sequence numbers are accepted;
@@ -202,7 +204,7 @@ Current limitations:
 
 - TUIO over UDP only; TCP and WebSocket transports are not implemented;
 - `TuioClient.start()` is blocking and there is no high-level client stop lifecycle API;
-- `refresh` currently receives the historical placeholder value `0` rather than a frame time object;
+- frame times are monotonic session-relative seconds rather than wall-clock timestamps or a dedicated time object;
 - local cursor/blob component IDs from the C++ reference client are not implemented;
 - periodic server retransmission methods are present but unimplemented.
 
