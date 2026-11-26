@@ -221,13 +221,13 @@ pip3 install -r pip_requirements.txt
 pip3 install -r pip_test_requirements.txt
 ```
 
-Run the automated offline tests:
+Run the automated tests:
 
 ```sh
-python3 -m pytest unit_test/test_tuio11_server.py unit_test/test_tuio11_client.py -q
+python3 -m pytest unit_test/ -q
 ```
 
-These tests construct OSC bundles offline and validate TUIO 1.1 wire ordering, type tags, lifecycle behavior, malformed-message handling, frame sequencing, and source multiplexing. `unit_test/tuio_test.py` is a legacy manual/network-dependent test script rather than an automated offline test.
+These tests construct OSC bundles offline and validate TUIO 1.1 wire ordering, type tags, lifecycle behavior, malformed-message handling, frame sequencing, and source multiplexing. The client lifecycle and periodic retransmission tests use loopback UDP locally and need no external TUIO source.
 
 ## Contributing
 

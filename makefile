@@ -8,7 +8,6 @@ lint :
 	python3 -m pylint ./pythontuio/ --msg-template='{msg_id}:{line:3d},{column}: {obj}: {msg}'
 	
 testpython :
-	./TuioDemo &		
 	python3 -m pytest 				
 		
 install_req :
