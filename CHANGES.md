@@ -22,6 +22,12 @@ This update brings the Python server and client implementations closer to the TU
 
 ### Client
 
+- Added a client lifecycle API:
+  - `start(blocking=False)` runs the receive loop in an internal non-daemon thread and returns immediately, while plain `start()` keeps the historic behavior of blocking in the calling thread;
+  - `stop()` shuts the receiver down without polling latency, is safe to call repeatedly, and supports restarting the client on a fresh socket;
+  - `stop()` silently clears decoded TUIO state (active profiles, pending frames, source mappings, frame sequence tracking) without remove callbacks, following the reference client disconnect behavior, while registered listeners remain installed;
+  - calling `stop()` from inside a listener callback raises `RuntimeError` instead of deadlocking;
+  - the existing `connected` attribute now accurately reflects the lifecycle state.
 - Reworked receive-side frame handling so `alive` and `set` messages are buffered and applied atomically when `fseq` completes a frame.
 - Fixed listener fanout so every registered listener receives the same add/update/remove events. Previously, event queues were cleared while dispatching to the first listener.
 - Removed noisy per-bundle debug printing.
@@ -62,7 +68,6 @@ This update brings the Python server and client implementations closer to the TU
 ### Remaining limitations
 
 - TUIO is supported over UDP only; TCP and WebSocket transports are not implemented.
-- `TuioClient.start()` remains blocking and no high-level client stop lifecycle API was added.
 - Frame times are monotonic session-relative seconds rather than wall-clock timestamps or a dedicated time object.
 - Local cursor/blob component IDs from the C++ reference client are not implemented.
 - Periodic server retransmission methods remain unimplemented.

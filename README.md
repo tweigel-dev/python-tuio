@@ -102,8 +102,6 @@ The server does not currently split very large frames across multiple UDP packet
 Implement the callback methods needed by your application in a `TuioListener` subclass and register it with a `TuioClient`.
 
 ```python
-from threading import Thread
-
 from pythontuio import Cursor, TuioClient, TuioListener
 
 class MyListener(TuioListener):
@@ -122,10 +120,16 @@ class MyListener(TuioListener):
 client = TuioClient(("localhost", 3333))
 client.add_listener(MyListener())
 
-# start() blocks, so most applications run it in a thread.
-thread = Thread(target=client.start, daemon=True)
-thread.start()
+client.start(blocking=False)
+try:
+    ...  # application logic
+finally:
+    client.stop()
 ```
+
+`start(blocking=False)` runs the receive loop in an internal non-daemon thread and returns immediately, so `stop()` must be called before the application exits. Calling plain `start()` without arguments keeps the historic behavior of blocking in the current thread until `stop()` is called from another thread; applications may still run it in a thread of their own.
+
+`stop()` shuts down the receiver and silently clears all decoded TUIO state, following the reference client's disconnect behavior: active cursors, objects, and blobs are removed without emitting remove callbacks, while registered listeners stay in place. Calling `stop()` when the client is not running does nothing, and the client can be started again after stopping. Because the receiver thread cannot wait for itself, `stop()` must not be called from inside a listener callback and raises `RuntimeError` there. The `connected` attribute reflects whether the client is currently running.
 
 The object and blob callbacks follow the same naming pattern: `add_tuio_object`, `update_tuio_object`, `remove_tuio_object`, `add_tuio_blob`, `update_tuio_blob`, and `remove_tuio_blob`.
 
@@ -198,12 +202,11 @@ The existing externally facing Python API is preserved:
 - client state remains available through the public active-profile lists;
 - listener callback names and signatures are unchanged.
 
-The added interfaces are limited to server frame/profile controls, profile source metadata, and client query helpers.
+The added interfaces are limited to server frame/profile controls, profile source metadata, client query helpers, and the client lifecycle extension (`start(blocking=...)` and `stop()`). Plain `start()` still blocks exactly as before.
 
 Current limitations:
 
 - TUIO over UDP only; TCP and WebSocket transports are not implemented;
-- `TuioClient.start()` is blocking and there is no high-level client stop lifecycle API;
 - frame times are monotonic session-relative seconds rather than wall-clock timestamps or a dedicated time object;
 - local cursor/blob component IDs from the C++ reference client are not implemented;
 - periodic server retransmission methods are present but unimplemented.
