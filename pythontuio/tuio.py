@@ -146,7 +146,6 @@ class TuioServer(TuioDispatcher, UDPClient):
         TuioDispatcher.__init__(self)
         self.is_full_update : bool = False
         self._periodic_messages : bool = False
-        self._intervall : int = 1000
         self._source_name = ""
         self._fseq = 0
         self._fseq_lock = threading.Lock()
@@ -222,13 +221,16 @@ class TuioServer(TuioDispatcher, UDPClient):
         self.send(bundle)
         return fseq
 
-    def _send_current_state(self, frame_sequence):
-        profiles = (
+    def _enabled_profiles_state(self):
+        """Return enabled profiles as (address, profile list, enabled) tuples."""
+        return (
             (TUIO_CURSOR, self.cursors, self.has_cursor_profile()),
             (TUIO_OBJECT, self.objects, self.has_object_profile()),
             (TUIO_BLOB, self.blobs, self.has_blob_profile()),
         )
-        for address, profile_list, enabled in profiles:
+
+    def _send_current_state(self, frame_sequence):
+        for address, profile_list, enabled in self._enabled_profiles_state():
             if enabled:
                 active_profiles = list(profile_list)
                 self.send_profile_bundle(
@@ -324,7 +326,6 @@ class TuioServer(TuioDispatcher, UDPClient):
         with self._periodic_lock:
             self._stop_periodic_thread()
             self._periodic_messages = True
-            self._intervall = intervall
             self._periodic_stop = threading.Event()
             self._periodic_thread = threading.Thread(
                 target=self._periodic_loop,
@@ -348,12 +349,7 @@ class TuioServer(TuioDispatcher, UDPClient):
         if self.is_full_update:
             self.send_full_messages()
             return
-        profiles = (
-            (TUIO_CURSOR, self.cursors, self.has_cursor_profile()),
-            (TUIO_OBJECT, self.objects, self.has_object_profile()),
-            (TUIO_BLOB, self.blobs, self.has_blob_profile()),
-        )
-        for address, profile_list, enabled in profiles:
+        for address, profile_list, enabled in self._enabled_profiles_state():
             if enabled:
                 self.send_profile_bundle(address, list(profile_list), [], fseq=-1)
 

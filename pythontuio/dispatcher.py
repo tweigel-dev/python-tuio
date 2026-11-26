@@ -8,9 +8,9 @@ from typing import List
 from pythonosc.dispatcher import Dispatcher
 
 from pythontuio.tuio_profiles import Cursor, Blob, Object
-from pythontuio.tuio_profiles import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
-from pythontuio.const import TUIO_END,TUIO_ALIVE,TUIO_SET, TUIO_SOURCE
+from pythontuio.const import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
+from pythontuio.const import TUIO_END, TUIO_ALIVE, TUIO_SET, TUIO_SOURCE
 
 
 _NO_ALIVE = object()
@@ -79,7 +79,6 @@ class TuioDispatcher(Dispatcher):
         self.map(TUIO_CURSOR, self._cursor_handler)
         self.map(TUIO_OBJECT, self._object_handler)
         self.map(TUIO_BLOB, self._blob_handler)
-        self.set_default_handler(self._default_handler)
 
         self._to_delete = []
         self._to_add    = []
