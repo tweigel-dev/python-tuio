@@ -291,16 +291,20 @@ class TuioDispatcher(Dispatcher):
             return
 
         active_profiles = self._active_profiles(profile_type)
+        removed_profiles = []
+        removed_session_ids = set()
         if alive is not _NO_ALIVE:
             alive_ids = set(alive)
             for profile in list(active_profiles):
                 if self._profile_source_key(profile) != source_key:
                     continue
                 if profile.session_id not in alive_ids:
-                    active_profiles.remove(profile)
-                    self._to_delete.append(profile)
+                    removed_profiles.append(profile)
+                    removed_session_ids.add(profile.session_id)
 
         for session_id, state in set_messages:
+            if session_id in removed_session_ids:
+                continue
             profile = self._find_profile(active_profiles, source_key, session_id)
             if profile is None:
                 profile = self._new_profile(profile_type, session_id)
@@ -311,6 +315,10 @@ class TuioDispatcher(Dispatcher):
             elif self._profile_state(profile) != state:
                 self._apply_profile_state(profile, state)
                 self._to_update.append(profile)
+
+        for profile in removed_profiles:
+            active_profiles.remove(profile)
+            self._to_delete.append(profile)
 
     def _active_profiles(self, profile_type):
         """Return the public active-profile list for a TUIO profile type."""
