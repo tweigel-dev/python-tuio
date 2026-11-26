@@ -98,9 +98,6 @@ class TuioDispatcher(Dispatcher):
 
         elif ttype == TUIO_END:
             self._call_listener()
-            print(f"Bundle recived with {address}:{ttype} {args}")
-
-
         else:
             raise Exception("Broken TUIO Package")
 
@@ -135,7 +132,6 @@ class TuioDispatcher(Dispatcher):
 
         elif ttype == TUIO_END:
             self._call_listener()
-            print(f"Bundle recived with {address}:{ttype} {args}")
         else:
             raise Exception("Broken TUIO Package")
 
@@ -170,13 +166,19 @@ class TuioDispatcher(Dispatcher):
 
         elif ttype == TUIO_END:
             self._call_listener()
-            print(f"Bundle recived with {address}:{ttype} {args}")
         else:
             raise Exception("Broken TUIO Package")
 
-    def _call_listener(self):    # pylint: disable=R0912 
-        for listner in self._listener:
-            for profile in self._to_add:
+    def _call_listener(self):    # pylint: disable=R0912
+        to_add = self._to_add
+        to_update = self._to_update
+        to_delete = self._to_delete
+        self._to_add = []
+        self._to_update = []
+        self._to_delete = []
+
+        for listner in self._listener.copy():
+            for profile in to_add:
                 if  isinstance(profile, Cursor) :
                     listner.add_tuio_cursor(profile)
                 elif isinstance(profile, Object) :
@@ -184,7 +186,7 @@ class TuioDispatcher(Dispatcher):
                 elif isinstance(profile, Blob) :
                     listner.add_tuio_blob(profile)
 
-            for profile in self._to_update:
+            for profile in to_update:
                 if  isinstance(profile, Cursor) :
                     listner.update_tuio_cursor(profile)
                 elif isinstance(profile, Object) :
@@ -193,7 +195,7 @@ class TuioDispatcher(Dispatcher):
                     listner.update_tuio_blob(profile)
 
 
-            for profile in self._to_delete:
+            for profile in to_delete:
                 if  isinstance(profile, Cursor) :
                     listner.remove_tuio_cursor(profile)
                 elif isinstance(profile, Object) :
@@ -202,9 +204,6 @@ class TuioDispatcher(Dispatcher):
                     listner.remove_tuio_blob(profile)
 
             listner.refresh(0) # TODO implement time conzept pylint
-            self._to_add    = []
-            self._to_update = []
-            self._to_delete = []
 
 
     def add_listener(self, listener :TuioListener):
