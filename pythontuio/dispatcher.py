@@ -97,6 +97,27 @@ class TuioDispatcher(Dispatcher):
             TUIO_BLOB: OrderedDict(),
         }
 
+    def _reset_state(self):
+        """Clear all decoded TUIO state without touching listeners or handlers.
+
+        The public profile lists are emptied in place so application references
+        to the lists themselves remain valid. The session clock origin is kept,
+        so refresh times stay monotonic across client restarts.
+        """
+        self.cursors.clear()
+        self.objects.clear()
+        self.blobs.clear()
+        self._to_add.clear()
+        self._to_update.clear()
+        self._to_delete.clear()
+        self._frame_alive.clear()
+        for frame_sets in self._frame_sets.values():
+            frame_sets.clear()
+        self._sources.clear()
+        self._current_frames.clear()
+        self._current_frame_times.clear()
+        self._current_source_key = None
+
     def _cursor_handler(self, address, *args):
         """
         callback to convert OSC message into TUIO Cursor

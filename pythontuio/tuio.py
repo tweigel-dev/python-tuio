@@ -11,6 +11,7 @@
 """
 
 
+import socket
 import threading
 from typing import  Tuple
 
@@ -38,13 +39,101 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
         self._dispatcher = self
         self.connected = False
         self.server_address = server_address
-    def start(self):
+        self._lifecycle_lock = threading.Lock()
+        self._stop_event = threading.Event()
+        self._serve_done = threading.Event()
+        self._thread = None
+        self._serving_ident = None
+
+    def start(self, blocking=True):
         """
-        start serving for UDP OSC packages
+        Start receiving UDP OSC packets.
+
+        With the default blocking=True the method blocks in the current thread
+        until stop() is called from another thread, preserving the historic
+        behavior. With blocking=False the receive loop runs in an internal
+        non-daemon thread and the method returns immediately; stop() must be
+        called before the application exits.
         """
-        print(f"starting tuio-client at port {self.server_address[1]}")
-        BlockingOSCUDPServer.__init__(self,self.server_address, self)
-        self.serve_forever()
+        with self._lifecycle_lock:
+            if self.connected:
+                raise RuntimeError("TuioClient is already running")
+            print(f"starting tuio-client at port {self.server_address[1]}")
+            BlockingOSCUDPServer.__init__(self,self.server_address, self)
+            self._stop_event.clear()
+            self._serve_done.clear()
+            self.connected = True
+            if not blocking:
+                self._thread = threading.Thread(
+                    target=self._serve,
+                    name="tuio-client-receiver",
+                    daemon=False,
+                )
+                try:
+                    self._thread.start()
+                except Exception:
+                    self._thread = None
+                    self.connected = False
+                    self.server_close()
+                    raise
+        if blocking:
+            self._serve()
+
+    def stop(self):
+        """
+        Stop receiving UDP OSC packets and clear all decoded TUIO state.
+
+        Active cursors, objects and blobs are removed silently without remove
+        callbacks, following the reference client disconnect behavior. Does
+        nothing if the client is not running. Must not be called from the
+        receiver thread, e.g. from inside a listener callback.
+        """
+        if self._serving_ident is not None and self._serving_ident == threading.get_ident():
+            raise RuntimeError("stop() must not be called from the client receiver thread")
+        with self._lifecycle_lock:
+            if not self.connected:
+                return
+            self._stop_event.set()
+        self._wake_receiver()
+        while not self._serve_done.wait(0.5):
+            self._wake_receiver()
+        thread = self._thread
+        if thread is not None:
+            thread.join()
+            self._thread = None
+        with self._lifecycle_lock:
+            self.connected = False
+            self._reset_state()
+
+    def _serve(self):
+        """Receive loop running in the current or internal receiver thread."""
+        self._serving_ident = threading.get_ident()
+        try:
+            while not self._stop_event.is_set():
+                self.handle_request()
+        finally:
+            self._serving_ident = None
+            self.server_close()
+            self._serve_done.set()
+
+    def _wake_receiver(self):
+        """Send a dummy byte to the own socket to unblock the receive loop."""
+        try:
+            host, port = self.socket.getsockname()[:2]
+        except OSError:
+            return
+        if host in ("", "0.0.0.0"):
+            host = "127.0.0.1"
+        elif host == "::":
+            host = "::1"
+        try:
+            wake_socket = socket.socket(self.address_family, socket.SOCK_DGRAM)
+            try:
+                wake_socket.sendto(b"\x00", (host, port))
+            finally:
+                wake_socket.close()
+        except OSError:
+            pass
 
 class TuioServer(TuioDispatcher, UDPClient):
 
