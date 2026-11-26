@@ -11,6 +11,7 @@
 """
 
 
+import threading
 from typing import  Tuple
 
 
@@ -62,6 +63,8 @@ class TuioServer(TuioDispatcher, UDPClient):
         self.is_full_update : bool = False
         self._periodic_messages : bool = False
         self._intervall : int = 1000
+        self._fseq = 0
+        self._fseq_lock = threading.Lock()
 
     @staticmethod
     def _build_alive(address, profile_list):
@@ -76,50 +79,52 @@ class TuioServer(TuioDispatcher, UDPClient):
 
         alive_msg = builder.build()
         return alive_msg
-    def send_bundle(self):
-        """Build :class:`OscMessage` from arguments and send to server
 
-        Args:
-            address: OSC address the message shall go to
-            value: One or more arguments to be added to the message
-        """
-
-        bundle_builder = OscBundleBuilder(0)
-
-        # build alive message
-
-        bundle_builder.add_content(TuioServer._build_alive(TUIO_CURSOR,self.cursors))
-
-        bundle_builder.add_content(TuioServer._build_alive(TUIO_BLOB,self.blobs))
-
-        bundle_builder.add_content(TuioServer._build_alive(TUIO_OBJECT,self.objects))
-
-
-        # set message of cursor
-        for cursor in self.cursors:
-            cursor_msg = cursor.get_message()
-            bundle_builder.add_content(cursor_msg)
-
-        # set message of blob
-        for blob in self.blobs:
-            blob_msg = blob.get_message()
-            bundle_builder.add_content(blob_msg)
-
-        # set message of object
-        for o in self.objects:
-            object_msg = o.get_message()
-            bundle_builder.add_content(object_msg)
-
-        # message fseq to end the bundle and send (optinal) frame id
-        builder = OscMessageBuilder(address=TUIO_CURSOR)
+    @staticmethod
+    def _build_fseq(address, frame_sequence):
+        """Build a TUIO fseq message for one profile."""
+        builder = OscMessageBuilder(address=address)
         builder.add_arg("fseq")
-        builder.add_arg(-1)
-        fseq = builder.build()
-        bundle_builder.add_content(fseq)
+        builder.add_arg(frame_sequence)
+        return builder.build()
 
-        # build bundle and send
-        bundle = bundle_builder.build()
+    def next_fseq(self):
+        """Allocate the next nonnegative OSC int32 frame sequence ID."""
+        with self._fseq_lock:
+            frame_sequence = self._fseq
+            self._fseq = (self._fseq + 1) % (2**31)
+            return frame_sequence
+
+    def _build_profile_bundle(self, address, active_profiles, set_profiles, frame_sequence):
+        """Build one ordered TUIO 1.1 profile-specific bundle."""
+        bundle_builder = OscBundleBuilder(0)
+        bundle_builder.add_content(TuioServer._build_alive(address, active_profiles))
+        for profile in set_profiles:
+            bundle_builder.add_content(profile.get_message())
+        bundle_builder.add_content(TuioServer._build_fseq(address, frame_sequence))
+        return bundle_builder.build()
+
+    def _send_profile_bundle(self, address, active_profiles, set_profiles, frame_sequence):
+        bundle = self._build_profile_bundle(
+            address,
+            list(active_profiles),
+            list(set_profiles),
+            frame_sequence,
+        )
         self.send(bundle)
+
+    def send_bundle(self):
+        """Send the current state as TUIO 1.1 profile-specific bundles."""
+        frame_sequence = self.next_fseq()
+
+        cursors = list(self.cursors)
+        self._send_profile_bundle(TUIO_CURSOR, cursors, cursors, frame_sequence)
+
+        objects = list(self.objects)
+        self._send_profile_bundle(TUIO_OBJECT, objects, objects, frame_sequence)
+
+        blobs = list(self.blobs)
+        self._send_profile_bundle(TUIO_BLOB, blobs, blobs, frame_sequence)
 
     def disable_periodic_messages(self, ):
         """
