@@ -3,6 +3,7 @@ classes to handle incoming osc messages
 """
 from abc import ABC # abstract base class of python
 from collections import OrderedDict
+import time
 from typing import List
 from pythonosc.dispatcher import Dispatcher
 
@@ -83,7 +84,9 @@ class TuioDispatcher(Dispatcher):
 
         self._current_source_key = None
         self._sources = {}
+        self._session_start = time.monotonic()
         self._current_frames = {}
+        self._current_frame_times = {}
         self._frame_alive = {}
         self._frame_sets = {
             TUIO_CURSOR: OrderedDict(),
@@ -243,7 +246,8 @@ class TuioDispatcher(Dispatcher):
 
         frame_sequence = values[0]
         source_key = self._current_source_key
-        if not self._accept_frame_sequence(source_key, frame_sequence):
+        accepted, frame_time = self._accept_frame_sequence(source_key, frame_sequence)
+        if not accepted:
             self._discard_pending_frame(source_key)
             self._reset_current_source()
             return
@@ -251,20 +255,32 @@ class TuioDispatcher(Dispatcher):
         try:
             for profile_type in _PROFILE_ORDER:
                 self._process_profile_frame(profile_type, source_key)
-            self._call_listener()
+            self._call_listener(frame_time)
         finally:
             self._reset_current_source()
 
+    def _session_time(self):
+        """Return seconds elapsed since this dispatcher started receiving."""
+        return time.monotonic() - self._session_start
+
     def _accept_frame_sequence(self, source_key, frame_sequence):
-        """Return whether a frame sequence is current, split, redundant, or wrapped."""
+        """Validate a frame sequence and return its session-relative frame time."""
+        now = self._session_time()
         if frame_sequence < 0:
-            return True
+            frame_time = self._current_frame_times.get(source_key)
+            if frame_time is None or (now - frame_time) > 0.1:
+                frame_time = now
+                self._current_frame_times[source_key] = frame_time
+            return True, frame_time
 
         current_frame = self._current_frames.get(source_key, -1)
-        if frame_sequence >= current_frame or (current_frame - frame_sequence) > 100:
+        is_wraparound = frame_sequence < current_frame and (current_frame - frame_sequence) > 100
+        if frame_sequence >= current_frame or is_wraparound:
             self._current_frames[source_key] = frame_sequence
-            return True
-        return False
+            if frame_sequence != current_frame or source_key not in self._current_frame_times:
+                self._current_frame_times[source_key] = now
+            return True, self._current_frame_times[source_key]
+        return False, None
 
     def _discard_pending_frame(self, source_key):
         """Discard all buffered state belonging to a dropped frame."""
@@ -402,7 +418,7 @@ class TuioDispatcher(Dispatcher):
         """Return one active blob by session ID and optional source ID."""
         return self._find_public_profile(self.blobs, session_id, source_id)
 
-    def _call_listener(self):    # pylint: disable=R0912
+    def _call_listener(self, frame_time):    # pylint: disable=R0912
         to_add = self._to_add
         to_update = self._to_update
         to_delete = self._to_delete
@@ -436,7 +452,7 @@ class TuioDispatcher(Dispatcher):
                 elif isinstance(profile, Blob) :
                     listner.remove_tuio_blob(profile)
 
-            listner.refresh(0) # TODO implement time conzept pylint
+            listner.refresh(frame_time)
 
 
     def add_listener(self, listener :TuioListener):

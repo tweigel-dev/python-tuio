@@ -1,5 +1,6 @@
 import contextlib
 import io
+import time
 import unittest
 
 from pythonosc.osc_bundle_builder import OscBundleBuilder
@@ -17,6 +18,7 @@ BLOB_SET = (3, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1)
 class RecordingListener(TuioListener):
     def __init__(self):
         self.events = []
+        self.refresh_times = []
 
     def add_tuio_object(self, obj):
         self.events.append(("add_obj", obj.session_id))
@@ -46,7 +48,8 @@ class RecordingListener(TuioListener):
         self.events.append(("remove_blob", blob.session_id))
 
     def refresh(self, time):
-        self.events.append(("refresh", time))
+        self.refresh_times.append(time)
+        self.events.append(("refresh", 0))
 
 
 def osc_message(address, *args):
@@ -309,6 +312,43 @@ class Tuio11ClientDispatchTest(unittest.TestCase):
         self.assertEqual(explicit.source_name, "cam1")
         self.assertEqual(len(implicit), 1)
         self.assertEqual(implicit[0].position, (0.9, 0.5))
+
+    def test_refresh_receives_session_relative_monotonic_frame_time(self):
+        dispatcher = TuioDispatcher()
+        listener = RecordingListener()
+        dispatcher.add_listener(listener)
+
+        cursor_frame(dispatcher, fseq=1)
+        time.sleep(0.002)
+        cursor_frame(dispatcher, fseq=2)
+
+        self.assertEqual(len(listener.refresh_times), 2)
+        self.assertTrue(all(type(value) is float for value in listener.refresh_times))
+        self.assertGreaterEqual(listener.refresh_times[0], 0.0)
+        self.assertLess(listener.refresh_times[0], listener.refresh_times[1])
+
+    def test_split_frame_packets_share_the_same_frame_time(self):
+        dispatcher = TuioDispatcher()
+        listener = RecordingListener()
+        dispatcher.add_listener(listener)
+
+        cursor_frame(dispatcher, session_id=10, fseq=5, alive_ids=[10])
+        cursor_frame(dispatcher, session_id=11, fseq=5, alive_ids=[10, 11])
+
+        self.assertEqual(len(listener.refresh_times), 2)
+        self.assertEqual(listener.refresh_times[0], listener.refresh_times[1])
+
+    def test_redundant_frame_reuses_recent_frame_time(self):
+        dispatcher = TuioDispatcher()
+        listener = RecordingListener()
+        dispatcher.add_listener(listener)
+
+        cursor_frame(dispatcher, session_id=10, fseq=5, alive_ids=[10])
+        dispatcher._cursor_handler("/tuio/2Dcur", "alive", 10)
+        dispatcher._cursor_handler("/tuio/2Dcur", "fseq", -1)
+
+        self.assertEqual(len(listener.refresh_times), 2)
+        self.assertEqual(listener.refresh_times[0], listener.refresh_times[1])
 
     def test_split_packets_with_same_fseq_are_accepted(self):
         dispatcher = TuioDispatcher()
