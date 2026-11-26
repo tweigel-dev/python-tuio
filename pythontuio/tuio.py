@@ -49,22 +49,19 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
 class TuioServer(TuioDispatcher, UDPClient):
 
     """
-    Tuio client based on a basic osc udp client of the lib python-osc
-
-    Notice that TuioSource is not implemented yet
+    TUIO server based on the UDP client implementation of python-osc.
     """
 
     def __init__(self, ip: str ="127.0.0.1" , port :int=3333):
         UDPClient.__init__(self,ip, port)
         TuioDispatcher.__init__(self)
-        self._ip = ip
-        self._port = port
-
         self.is_full_update : bool = False
         self._periodic_messages : bool = False
         self._intervall : int = 1000
+        self._source_name = ""
         self._fseq = 0
         self._fseq_lock = threading.Lock()
+        self._enabled_profiles = {TUIO_CURSOR, TUIO_OBJECT, TUIO_BLOB}
 
     @staticmethod
     def _build_alive(address, profile_list):
@@ -79,6 +76,14 @@ class TuioServer(TuioDispatcher, UDPClient):
 
         alive_msg = builder.build()
         return alive_msg
+
+    @staticmethod
+    def _build_source(address, source_name):
+        """Build a TUIO source message for one profile."""
+        builder = OscMessageBuilder(address=address)
+        builder.add_arg("source")
+        builder.add_arg(source_name)
+        return builder.build()
 
     @staticmethod
     def _build_fseq(address, frame_sequence):
@@ -98,33 +103,98 @@ class TuioServer(TuioDispatcher, UDPClient):
     def _build_profile_bundle(self, address, active_profiles, set_profiles, frame_sequence):
         """Build one ordered TUIO 1.1 profile-specific bundle."""
         bundle_builder = OscBundleBuilder(0)
+        if self._source_name:
+            bundle_builder.add_content(TuioServer._build_source(address, self._source_name))
         bundle_builder.add_content(TuioServer._build_alive(address, active_profiles))
         for profile in set_profiles:
             bundle_builder.add_content(profile.get_message())
         bundle_builder.add_content(TuioServer._build_fseq(address, frame_sequence))
         return bundle_builder.build()
 
-    def _send_profile_bundle(self, address, active_profiles, set_profiles, frame_sequence):
-        bundle = self._build_profile_bundle(
-            address,
-            list(active_profiles),
-            list(set_profiles),
-            frame_sequence,
-        )
+    def send_profile_bundle(self, address, active_profiles, set_profiles=None, fseq=None):
+        """Send one TUIO profile bundle.
+
+        active_profiles determines the complete alive list, while set_profiles
+        determines which set messages are included. If fseq is omitted, the
+        next frame sequence ID is allocated automatically.
+        """
+        active_profiles = list(active_profiles)
+        if set_profiles is None:
+            set_profiles = active_profiles
+        else:
+            set_profiles = list(set_profiles)
+        if fseq is None:
+            fseq = self.next_fseq()
+
+        bundle = self._build_profile_bundle(address, active_profiles, set_profiles, fseq)
         self.send(bundle)
+        return fseq
+
+    def _send_current_state(self, frame_sequence):
+        profiles = (
+            (TUIO_CURSOR, self.cursors, self.has_cursor_profile()),
+            (TUIO_OBJECT, self.objects, self.has_object_profile()),
+            (TUIO_BLOB, self.blobs, self.has_blob_profile()),
+        )
+        for address, profile_list, enabled in profiles:
+            if enabled:
+                active_profiles = list(profile_list)
+                self.send_profile_bundle(
+                    address,
+                    active_profiles,
+                    active_profiles,
+                    fseq=frame_sequence,
+                )
 
     def send_bundle(self):
         """Send the current state as TUIO 1.1 profile-specific bundles."""
-        frame_sequence = self.next_fseq()
+        self._send_current_state(self.next_fseq())
 
-        cursors = list(self.cursors)
-        self._send_profile_bundle(TUIO_CURSOR, cursors, cursors, frame_sequence)
+    def send_full_messages(self):
+        """Send redundant full state for all enabled profiles with fseq -1."""
+        self._send_current_state(-1)
 
-        objects = list(self.objects)
-        self._send_profile_bundle(TUIO_OBJECT, objects, objects, frame_sequence)
+    def send_empty_cursor_bundle(self):
+        """Send an empty cursor bundle for startup or shutdown state clearing."""
+        self.send_profile_bundle(TUIO_CURSOR, [], [], fseq=-1)
 
-        blobs = list(self.blobs)
-        self._send_profile_bundle(TUIO_BLOB, blobs, blobs, frame_sequence)
+    def send_empty_object_bundle(self):
+        """Send an empty object bundle for startup or shutdown state clearing."""
+        self.send_profile_bundle(TUIO_OBJECT, [], [], fseq=-1)
+
+    def send_empty_blob_bundle(self):
+        """Send an empty blob bundle for startup or shutdown state clearing."""
+        self.send_profile_bundle(TUIO_BLOB, [], [], fseq=-1)
+
+    def _set_profile_enabled(self, address, flag):
+        if flag:
+            self._enabled_profiles.add(address)
+        else:
+            self._enabled_profiles.discard(address)
+
+    def enable_cursor_profile(self, flag=True):
+        """Enable or disable the /tuio/2Dcur cursor profile."""
+        self._set_profile_enabled(TUIO_CURSOR, flag)
+
+    def enable_object_profile(self, flag=True):
+        """Enable or disable the /tuio/2Dobj object profile."""
+        self._set_profile_enabled(TUIO_OBJECT, flag)
+
+    def enable_blob_profile(self, flag=True):
+        """Enable or disable the /tuio/2Dblb blob profile."""
+        self._set_profile_enabled(TUIO_BLOB, flag)
+
+    def has_cursor_profile(self):
+        """Return true if the cursor profile is enabled."""
+        return TUIO_CURSOR in self._enabled_profiles
+
+    def has_object_profile(self):
+        """Return true if the object profile is enabled."""
+        return TUIO_OBJECT in self._enabled_profiles
+
+    def has_blob_profile(self):
+        """Return true if the blob profile is enabled."""
+        return TUIO_BLOB in self._enabled_profiles
 
     def disable_periodic_messages(self, ):
         """
@@ -142,10 +212,8 @@ class TuioServer(TuioDispatcher, UDPClient):
         raise Exception("Not implemented")
 
     def set_source_name(self, _name : str, ip :str=None):
-        """
-        Not implemented
-        """
-        if ip is not None:
-            ip = self._ip
-
-        raise Exception("Not implemented")
+        """Set the optional TUIO source name sent at the start of each bundle."""
+        if ip is None:
+            self._source_name = str(_name)
+        else:
+            self._source_name = f"{_name}@{ip}"

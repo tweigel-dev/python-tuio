@@ -113,6 +113,107 @@ class Tuio11ServerWireTest(unittest.TestCase):
         self.assertEqual(server.next_fseq(), (2**31) - 1)
         self.assertEqual(server.next_fseq(), 0)
 
+    def test_source_message_is_optional_and_first(self):
+        server = CaptureTuioServer()
+        server.set_source_name(_name="test-source")
+
+        server.send_bundle()
+
+        for bundle in server.sent:
+            messages = bundle_messages(bundle)
+            self.assertEqual(messages[0].params, ["source", "test-source"])
+            self.assertEqual(osc_type_tag(messages[0].dgram), ",ss")
+            self.assertEqual(messages[1].params[0], "alive")
+
+        addressed = CaptureTuioServer()
+        addressed.set_source_name("test-source", "10.0.0.1")
+        addressed.send_bundle()
+        first = bundle_messages(addressed.sent[0])[0]
+        self.assertEqual(first.params, ["source", "test-source@10.0.0.1"])
+
+    def test_profile_enablement_controls_send_bundle_output(self):
+        server = CaptureTuioServer()
+
+        self.assertTrue(server.has_cursor_profile())
+        self.assertTrue(server.has_object_profile())
+        self.assertTrue(server.has_blob_profile())
+
+        server.enable_object_profile(False)
+        server.enable_blob_profile(False)
+        server.send_bundle()
+
+        self.assertFalse(server.has_object_profile())
+        self.assertFalse(server.has_blob_profile())
+        self.assertEqual(len(server.sent), 1)
+        self.assertEqual(bundle_messages(server.sent[0])[0].address, TUIO_CURSOR)
+
+        server.enable_object_profile()
+        server.send_bundle()
+        self.assertEqual(len(server.sent), 3)
+
+    def test_send_full_messages_uses_minus_one_without_advancing_fseq(self):
+        server = CaptureTuioServer()
+        cursor = Cursor(42)
+        server.cursors.append(cursor)
+
+        server.send_full_messages()
+
+        self.assertEqual(len(server.sent), 3)
+        for bundle in server.sent:
+            messages = bundle_messages(bundle)
+            self.assertEqual(messages[-1].params, ["fseq", -1])
+        cursor_messages = bundle_messages(server.sent[0])
+        self.assertEqual(cursor_messages[1].params[0], "set")
+        self.assertEqual(server.next_fseq(), 0)
+
+    def test_empty_profile_bundles_use_minus_one(self):
+        server = CaptureTuioServer()
+
+        server.send_empty_cursor_bundle()
+        server.send_empty_object_bundle()
+        server.send_empty_blob_bundle()
+
+        addresses = []
+        for bundle in server.sent:
+            messages = bundle_messages(bundle)
+            addresses.append(messages[0].address)
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(messages[0].params, ["alive"])
+            self.assertEqual(messages[1].params, ["fseq", -1])
+        self.assertEqual(addresses, [TUIO_CURSOR, TUIO_OBJECT, TUIO_BLOB])
+
+    def test_send_profile_bundle_separates_alive_and_updated_profiles(self):
+        server = CaptureTuioServer()
+        active = [Cursor(1), Cursor(2)]
+        updated = [active[1]]
+
+        used_fseq = server.send_profile_bundle(
+            TUIO_CURSOR,
+            active,
+            updated,
+            fseq=7,
+        )
+
+        self.assertEqual(used_fseq, 7)
+        messages = bundle_messages(server.sent[0])
+        self.assertEqual(len(messages), 3)
+        self.assertEqual(messages[0].params, ["alive", 1, 2])
+        self.assertEqual(messages[1].params[0], "set")
+        self.assertEqual(messages[1].params[1], 2)
+        self.assertEqual(messages[2].params, ["fseq", 7])
+
+    def test_send_profile_bundle_defaults_to_full_active_state_and_auto_fseq(self):
+        server = CaptureTuioServer()
+        active = [Cursor(1)]
+
+        used_fseq = server.send_profile_bundle(TUIO_CURSOR, active)
+
+        self.assertEqual(used_fseq, 0)
+        messages = bundle_messages(server.sent[0])
+        self.assertEqual(messages[0].params, ["alive", 1])
+        self.assertEqual(messages[1].params[0], "set")
+        self.assertEqual(messages[2].params, ["fseq", 0])
+
 
 if __name__ == "__main__":
     unittest.main()
