@@ -6,6 +6,11 @@ This update brings the Python server and client implementations closer to the TU
 
 ### Server
 
+- Implemented periodic server retransmission:
+  - `enable_periodic_messages(intervall=1000)` resends the current state every `intervall` milliseconds in a daemon thread using redundant `fseq -1` frames;
+  - with the public `is_full_update` attribute enabled the full state including all `set` messages is transmitted, otherwise `alive`-only keepalive bundles signal source liveness;
+  - `disable_periodic_messages()` stops the retransmission and both methods are idempotent;
+  - added the additive `periodic_messages_enabled()` query.
 - Corrected `send_bundle()` wire output to emit separate profile-specific OSC bundles for `/tuio/2Dcur`, `/tuio/2Dobj`, and `/tuio/2Dblb` instead of one mixed-profile bundle.
 - Ordered each profile bundle as optional `source`, `alive`, zero or more `set` messages, and concluding `fseq`.
 - Added incrementing nonnegative int32 frame sequence IDs. Profiles belonging to the same `send_bundle()` call share the same frame sequence.
@@ -70,5 +75,4 @@ This update brings the Python server and client implementations closer to the TU
 - TUIO is supported over UDP only; TCP and WebSocket transports are not implemented.
 - Frame times are monotonic session-relative seconds rather than wall-clock timestamps or a dedicated time object.
 - Local cursor/blob component IDs from the C++ reference client are not implemented.
-- Periodic server retransmission methods remain unimplemented.
 - The server does not automatically split very large frames across multiple UDP packets.

@@ -95,7 +95,9 @@ server.send_profile_bundle("/tuio/2Dblb", active_blobs, changed_blobs, fseq=fseq
 
 If `set_profiles` or `fseq` are omitted, `send_profile_bundle()` sends all active profiles and allocates the next frame sequence automatically.
 
-The server does not currently split very large frames across multiple UDP packets or schedule periodic retransmission itself. Frame-driven applications remain responsible for calling `send_bundle()` or `send_full_messages()` at the desired rate. The periodic-message methods remain unimplemented and raise an exception.
+The server does not currently split very large frames across multiple UDP packets. Frame-driven applications remain responsible for calling `send_bundle()` at the desired frame rate.
+
+For static scenes or resynchronization after packet loss, `enable_periodic_messages(intervall)` starts automatic retransmission of the current state every `intervall` milliseconds (default 1000) in a daemon thread, using redundant `fseq -1` frames. If the public `is_full_update` attribute is true, the complete state including all `set` messages is resent, so clients joining a static scene can resynchronize; otherwise only `alive` keepalive bundles are transmitted, which signal source liveness without fabricating profile state. `disable_periodic_messages()` stops the retransmission and `periodic_messages_enabled()` queries the state.
 
 ## Client usage
 
@@ -208,8 +210,7 @@ Current limitations:
 
 - TUIO over UDP only; TCP and WebSocket transports are not implemented;
 - frame times are monotonic session-relative seconds rather than wall-clock timestamps or a dedicated time object;
-- local cursor/blob component IDs from the C++ reference client are not implemented;
-- periodic server retransmission methods are present but unimplemented.
+- local cursor/blob component IDs from the C++ reference client are not implemented.
 
 ## Development
 
