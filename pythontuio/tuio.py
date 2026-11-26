@@ -151,6 +151,9 @@ class TuioServer(TuioDispatcher, UDPClient):
         self._fseq = 0
         self._fseq_lock = threading.Lock()
         self._enabled_profiles = {TUIO_CURSOR, TUIO_OBJECT, TUIO_BLOB}
+        self._periodic_lock = threading.Lock()
+        self._periodic_thread = None
+        self._periodic_stop = None
 
     @staticmethod
     def _build_alive(address, profile_list):
@@ -285,20 +288,74 @@ class TuioServer(TuioDispatcher, UDPClient):
         """Return true if the blob profile is enabled."""
         return TUIO_BLOB in self._enabled_profiles
 
-    def disable_periodic_messages(self, ):
-        """
-        Not implemented
-        """
-        self._periodic_messages = False
-        raise Exception("Not implemented")
+    def disable_periodic_messages(self):
+        """Disable the periodic retransmission of TUIO state.
 
-    def enable_periodic_messages(self, intervall:int):
+        Stops the internal timer thread if it is running. Does nothing if
+        periodic messages are not enabled.
         """
-        Not implemented
+        with self._periodic_lock:
+            self._stop_periodic_thread()
+
+    def _stop_periodic_thread(self):
+        """Stop the periodic timer thread. Caller must hold _periodic_lock."""
+        self._periodic_messages = False
+        thread = self._periodic_thread
+        stop_event = self._periodic_stop
+        self._periodic_thread = None
+        self._periodic_stop = None
+        if thread is not None:
+            stop_event.set()
+            thread.join()
+
+    def enable_periodic_messages(self, intervall: int = 1000):
+        """Enable periodic retransmission of TUIO state.
+
+        Every intervall milliseconds the current state is resent with the
+        redundant frame marker fseq -1, so clients joining a static scene or
+        recovering from packet loss can resynchronize. If the public
+        is_full_update attribute is true the complete state including all set
+        messages is transmitted, otherwise only alive keepalive bundles are
+        sent. Retransmission runs in a daemon thread and therefore does not
+        keep the application alive.
         """
-        self._periodic_messages = True
-        self._intervall = intervall
-        raise Exception("Not implemented")
+        if intervall <= 0:
+            raise ValueError("intervall must be a positive number of milliseconds")
+        with self._periodic_lock:
+            self._stop_periodic_thread()
+            self._periodic_messages = True
+            self._intervall = intervall
+            self._periodic_stop = threading.Event()
+            self._periodic_thread = threading.Thread(
+                target=self._periodic_loop,
+                args=(self._periodic_stop, intervall),
+                name="tuio-server-periodic",
+                daemon=True,
+            )
+            self._periodic_thread.start()
+
+    def periodic_messages_enabled(self):
+        """Return true if periodic retransmission is enabled."""
+        return self._periodic_messages
+
+    def _periodic_loop(self, stop_event, intervall):
+        """Timer loop sending redundant state until stopped."""
+        while not stop_event.wait(intervall / 1000.0):
+            self._send_periodic_state()
+
+    def _send_periodic_state(self):
+        """Send one redundant resynchronization or keepalive frame."""
+        if self.is_full_update:
+            self.send_full_messages()
+            return
+        profiles = (
+            (TUIO_CURSOR, self.cursors, self.has_cursor_profile()),
+            (TUIO_OBJECT, self.objects, self.has_object_profile()),
+            (TUIO_BLOB, self.blobs, self.has_blob_profile()),
+        )
+        for address, profile_list, enabled in profiles:
+            if enabled:
+                self.send_profile_bundle(address, list(profile_list), [], fseq=-1)
 
     def set_source_name(self, _name : str, ip :str=None):
         """Set the optional TUIO source name sent at the start of each bundle."""
