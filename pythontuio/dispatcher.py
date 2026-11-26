@@ -82,6 +82,7 @@ class TuioDispatcher(Dispatcher):
         self._to_update = []
 
         self._current_source_key = None
+        self._current_frames = {}
         self._frame_alive = {}
         self._frame_sets = {
             TUIO_CURSOR: OrderedDict(),
@@ -215,10 +216,36 @@ class TuioDispatcher(Dispatcher):
         if len(values) == 0 or type(values[0]) is not int:
             return
 
+        frame_sequence = values[0]
         source_key = self._current_source_key
+        if not self._accept_frame_sequence(source_key, frame_sequence):
+            self._discard_pending_frame(source_key)
+            return
+
         for profile_type in _PROFILE_ORDER:
             self._process_profile_frame(profile_type, source_key)
         self._call_listener()
+
+    def _accept_frame_sequence(self, source_key, frame_sequence):
+        """Return whether a frame sequence is current, split, redundant, or wrapped."""
+        if frame_sequence < 0:
+            return True
+
+        current_frame = self._current_frames.get(source_key, -1)
+        if frame_sequence >= current_frame or (current_frame - frame_sequence) > 100:
+            self._current_frames[source_key] = frame_sequence
+            return True
+        return False
+
+    def _discard_pending_frame(self, source_key):
+        """Discard all buffered state belonging to a dropped frame."""
+        for key in list(self._frame_alive.keys()):
+            if key[1] == source_key:
+                del self._frame_alive[key]
+        for frame_sets in self._frame_sets.values():
+            for key in list(frame_sets.keys()):
+                if key[0] == source_key:
+                    del frame_sets[key]
 
     def _process_profile_frame(self, profile_type, source_key):
         """Apply pending alive and set state for one profile/source."""

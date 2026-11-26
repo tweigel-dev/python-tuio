@@ -202,6 +202,60 @@ class Tuio11ClientDispatchTest(unittest.TestCase):
         self.assertEqual(dispatcher.blobs[0].velocity_rotation, 0.25)
         self.assertEqual(dispatcher.blobs[0].rotation_acceleration, 0.125)
 
+    def test_split_packets_with_same_fseq_are_accepted(self):
+        dispatcher = TuioDispatcher()
+        listener = RecordingListener()
+        dispatcher.add_listener(listener)
+
+        cursor_frame(dispatcher, session_id=10, fseq=5, alive_ids=[10])
+        cursor_frame(dispatcher, session_id=11, fseq=5, alive_ids=[10, 11])
+
+        self.assertEqual([cursor.session_id for cursor in dispatcher.cursors], [10, 11])
+        self.assertEqual(
+            listener.events.count(("refresh", 0)),
+            2,
+        )
+
+    def test_older_fseq_is_dropped_without_events_or_refresh(self):
+        dispatcher = TuioDispatcher()
+        listener = RecordingListener()
+        dispatcher.add_listener(listener)
+
+        cursor_frame(dispatcher, session_id=10, fseq=5, alive_ids=[10])
+        listener.events.clear()
+
+        cursor_frame(dispatcher, session_id=12, fseq=3, alive_ids=[10, 12])
+
+        self.assertEqual([cursor.session_id for cursor in dispatcher.cursors], [10])
+        self.assertEqual(listener.events, [])
+
+    def test_redundant_fseq_minus_one_is_processed(self):
+        dispatcher = TuioDispatcher()
+        listener = RecordingListener()
+        dispatcher.add_listener(listener)
+
+        cursor_frame(dispatcher, session_id=10, fseq=5, alive_ids=[10])
+        listener.events.clear()
+
+        dispatcher._cursor_handler("/tuio/2Dcur", "alive", 10)
+        dispatcher._cursor_handler("/tuio/2Dcur", "fseq", -1)
+
+        self.assertEqual([cursor.session_id for cursor in dispatcher.cursors], [10])
+        self.assertEqual(listener.events, [("refresh", 0)])
+
+    def test_large_backwards_jump_is_accepted_as_sequence_wraparound(self):
+        dispatcher = TuioDispatcher()
+
+        cursor_frame(dispatcher, session_id=10, fseq=200, alive_ids=[10])
+        cursor_frame(dispatcher, session_id=10, fseq=50, alive_ids=[10])
+        self.assertEqual(len(dispatcher.cursors), 1)
+
+        listener = RecordingListener()
+        dispatcher.add_listener(listener)
+        cursor_frame(dispatcher, session_id=11, fseq=49, alive_ids=[10, 11])
+        self.assertEqual(listener.events, [])
+        self.assertEqual([cursor.session_id for cursor in dispatcher.cursors], [10])
+
     def test_malformed_messages_are_ignored_without_breaking_frame(self):
         dispatcher = TuioDispatcher()
         listener = RecordingListener()
