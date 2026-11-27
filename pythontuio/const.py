@@ -1,6 +1,6 @@
 
 """
-File for constant TUIO values
+Constants for TUIO addresses and message types.
 """
 TUIO_CURSOR = "/tuio/2Dcur"
 TUIO_OBJECT = "/tuio/2Dobj"

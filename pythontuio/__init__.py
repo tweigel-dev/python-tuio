@@ -1,5 +1,5 @@
 """
-init file of the pip3 module pythontuio
+Package initializer for the pythontuio library.
 """
 from pythontuio.tuio_profiles import Cursor
 from pythontuio.tuio_profiles import Blob

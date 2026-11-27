@@ -1,7 +1,7 @@
 """
-classes to handle incoming osc messages
+Classes to handle incoming OSC messages.
 """
-from abc import ABC # abstract base class of python
+from abc import ABC # abstract base class of Python
 from collections import OrderedDict
 import time
 from typing import List
@@ -25,36 +25,36 @@ _SET_LENGTHS = {
 # pylint: disable=unnecessary-pass
 class TuioListener(ABC):
     """
-    Abstract TuioListener to define callbacks für the diffrent tuio events
+    Abstract TuioListener defining callbacks for the various TUIO events.
     """
     def add_tuio_object(self, obj):
-        """Abstract function to add a behavior for tuio add object event"""
+        """Abstract function to handle the TUIO add object event."""
         pass
     def update_tuio_object(self, obj):
-        """Abstract function to add a behavior for tuio update object event"""
+        """Abstract function to handle the TUIO update object event."""
         pass
     def remove_tuio_object(self, obj):
-        """Abstract function to add a behavior for tuio remove object event"""
+        """Abstract function to handle the TUIO remove object event."""
         pass
 
     def add_tuio_cursor(self, cur):
-        """Abstract function to add a behavior for tuio add cursor event"""
+        """Abstract function to handle the TUIO add cursor event."""
         pass
     def update_tuio_cursor(self, cur):
-        """Abstract function to add a behavior for tuio update cursor event"""
+        """Abstract function to handle the TUIO update cursor event."""
         pass
     def remove_tuio_cursor(self, cur):
-        """Abstract function to add a behavior for tuio remove cursor event"""
+        """Abstract function to handle the TUIO remove cursor event."""
         pass
 
     def add_tuio_blob(self, blob):
-        """Abstract function to add a behavior for tuio add blob event"""
+        """Abstract function to handle the TUIO add blob event."""
         pass
     def update_tuio_blob(self, blob):
-        """Abstract function to add a behavior for tuio update blob event"""
+        """Abstract function to handle the TUIO update blob event."""
         pass
     def remove_tuio_blob(self, blob):
-        """Abstract function to add a behavior for tuio remove blob event"""
+        """Abstract function to handle the TUIO remove blob event."""
         pass
     def refresh(self, time):
         """Abstract callback marking the end of a received TUIO frame.
@@ -68,7 +68,8 @@ class TuioListener(ABC):
 
 class TuioDispatcher(Dispatcher):
     """
-    class to hold Eventlistener and the TuioCursors, TuioBlobs, and TuioObjects
+    Class to hold event listeners and the TUIO 2D Cursor, TUIO 2D Blob,
+    and TUIO 2D Object profiles.
     """
     def __init__(self):
         super().__init__()
@@ -119,19 +120,19 @@ class TuioDispatcher(Dispatcher):
 
     def _cursor_handler(self, address, *args):
         """
-        callback to convert OSC message into TUIO Cursor
+        Callback to convert an OSC message into a TUIO 2D Cursor.
         """
         self._profile_handler(TUIO_CURSOR, args)
 
     def _object_handler(self, address, *args):
         """
-        callback to convert OSC message into TUIO Object
+        Callback to convert an OSC message into a TUIO 2D Object.
         """
         self._profile_handler(TUIO_OBJECT, args)
 
     def _blob_handler(self, address, *args):
         """
-        callback to convert OSC message into TUIO Blob
+        Callback to convert an OSC message into a TUIO 2D Blob.
          """
         self._profile_handler(TUIO_BLOB, args)
 
@@ -492,6 +493,6 @@ class TuioDispatcher(Dispatcher):
 
     def remove_all_listeners(self):
         """
-        Removes all provided TuioListeners from the list of registered TUIO event listeners
+        Removes all registered TuioListeners from the list of TUIO event listeners.
         """
         self._listener.clear()

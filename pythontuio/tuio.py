@@ -1,5 +1,7 @@
 
 """
+TUIO client and server classes based on python-osc.
+
               TuioDispatcher
                     |
                     |
@@ -30,9 +32,9 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
     """
     The TuioClient class is the central TUIO protocol decoder component.
     It provides a simple callback infrastructure using the TuioListener interface.
-    In order to receive and decode TUIO messages an instance of TuioClient needs to be created.
-    The TuioClient instance then generates TUIO events which are broadcasted to all
-    registered classes that implement the TuioListener interface.
+    In order to receive and decode TUIO messages, an instance of TuioClient needs to be created.
+    The TuioClient instance then generates TUIO events which are broadcast to all
+    registered listeners that implement the TuioListener interface.
     """
     def __init__(self, server_address: Tuple[str, int]): # pylint: disable=W0231
         TuioDispatcher.__init__(self)
@@ -117,7 +119,7 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
             self._serve_done.set()
 
     def _wake_receiver(self):
-        """Send a dummy byte to the own socket to unblock the receive loop."""
+        """Send a dummy byte to the client's own socket to unblock the receive loop."""
         try:
             host, port = self.socket.getsockname()[:2]
         except OSError:
@@ -138,7 +140,7 @@ class TuioClient(TuioDispatcher, BlockingOSCUDPServer): # pylint: disable=too-ma
 class TuioServer(TuioDispatcher, UDPClient):
 
     """
-    TUIO server based on the UDP client implementation of python-osc.
+    A TUIO server based on the UDP client implementation of python-osc.
     """
 
     def __init__(self, ip: str ="127.0.0.1" , port :int=3333):
@@ -157,13 +159,12 @@ class TuioServer(TuioDispatcher, UDPClient):
     @staticmethod
     def _build_alive(address, profile_list):
         """
-        builds a OSC which implements a alive message of TUIO
-        returns the message
+        Build and return an OSC alive message for one TUIO profile.
         """
         builder = OscMessageBuilder(address=address)
         builder.add_arg("alive")
         for profile in profile_list:
-            builder.add_arg(profile.session_id) ## add id of cursors
+            builder.add_arg(profile.session_id) # add session IDs of active profiles
 
         alive_msg = builder.build()
         return alive_msg
@@ -279,15 +280,15 @@ class TuioServer(TuioDispatcher, UDPClient):
         self._set_profile_enabled(TUIO_BLOB, flag)
 
     def has_cursor_profile(self):
-        """Return true if the cursor profile is enabled."""
+        """Return True if the cursor profile is enabled."""
         return TUIO_CURSOR in self._enabled_profiles
 
     def has_object_profile(self):
-        """Return true if the object profile is enabled."""
+        """Return True if the object profile is enabled."""
         return TUIO_OBJECT in self._enabled_profiles
 
     def has_blob_profile(self):
-        """Return true if the blob profile is enabled."""
+        """Return True if the blob profile is enabled."""
         return TUIO_BLOB in self._enabled_profiles
 
     def disable_periodic_messages(self):
@@ -336,7 +337,7 @@ class TuioServer(TuioDispatcher, UDPClient):
             self._periodic_thread.start()
 
     def periodic_messages_enabled(self):
-        """Return true if periodic retransmission is enabled."""
+        """Return True if periodic retransmission is enabled."""
         return self._periodic_messages
 
     def _periodic_loop(self, stop_event, intervall):
