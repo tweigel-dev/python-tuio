@@ -1,8 +1,8 @@
 
 """
-this python file is written orientated by the TUIO spezification
+This Python file is written according to the TUIO specification:
 https://www.tuio.org/?specification
-It supports only 2D Object|Blob|Cursor
+It only supports the TUIO 2D Object, Blob, and Cursor profiles.
 
             Profile
                 |
@@ -20,17 +20,21 @@ from pythontuio.const import TUIO_BLOB, TUIO_CURSOR, TUIO_OBJECT
 
 class Profile:
     """
-    custom class of all subjects passing the TUIO connection.
+    Base class for all profiles transmitted over a TUIO OSC/UDP connection.
     See more at https://www.tuio.org/?specification
 
     """
 
     def __init__(self, session_id):
         self.session_id = session_id
+        self.source_id = 0
+        self.source_name = ""
+        self.source_address = ""
+        self._tuio_source_key = None
 
 class Object(Profile):
     """
-    TUIO Object 2D Interactive Surface
+    TUIO Object for an interactive 2D surface.
     """
     def __init__(self, session_id):
         super().__init__(session_id)
@@ -44,7 +48,8 @@ class Object(Profile):
 
     def get_message(self) -> OscMessage:
         """
-        returns the OSC message of the Object with the TUIO spezification
+        Returns the OSC set message for the TUIO 2D Object profile
+        according to the TUIO specification.
         """
         x, y = self.position
         X, Y = self.velocity
@@ -67,7 +72,7 @@ class Object(Profile):
 
 class Cursor(Profile):
     """
-    TUIO Cursor 2D Interactive Surface
+    TUIO Cursor for an interactive 2D surface.
     """
     def __init__(self, session_id):
         super().__init__(session_id)
@@ -77,7 +82,8 @@ class Cursor(Profile):
 
     def get_message(self)-> OscMessage:
         """
-        returns the OSC message of the Cursor with the TUIO spezification
+        Returns the OSC set message for the TUIO 2D Cursor profile
+        according to the TUIO specification.
         """
         x, y = self.position
         X, Y = self.velocity
@@ -98,7 +104,7 @@ class Cursor(Profile):
 class Blob(Profile):
      # pylint: disable=too-many-instance-attributes
     """
-    TUIO Blob 2D Interactive Surface
+    TUIO Blob for an interactive 2D surface.
     """
     def __init__(self, session_id):
         super().__init__(session_id)
@@ -113,7 +119,8 @@ class Blob(Profile):
 
     def get_message(self)-> OscMessage:
         """
-        returns the OSC message of the Blob with the TUIO spezification
+        Returns the OSC set message for the TUIO 2D Blob profile
+        according to the TUIO specification.
         """
         x, y = self.position
         X, Y = self.velocity
